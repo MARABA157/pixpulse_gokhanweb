@@ -3,7 +3,7 @@ import { motion } from 'framer-motion';
 import { FaPaperPlane, FaRobot, FaUser, FaSpinner } from 'react-icons/fa';
 import toast from 'react-hot-toast';
 
-const API_KEY = "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";
+const API_KEY = import.meta.env.VITE_HUGGINGFACE_API_KEY;
 const API_URL = "https://api-inference.huggingface.co/models/facebook/blenderbot-400M-distill";
 
 const AIChat: React.FC = () => {
