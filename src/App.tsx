@@ -12,7 +12,7 @@ import Settings from './pages/Settings';
 import Create from './pages/Create';
 import Messages from './pages/Messages';
 import Explore from './pages/Explore';
-import AIChat from './pages/AIChat';
+import AiChat from './pages/AiChat';
 import CreateVideo from './pages/CreateVideo';
 
 function App() {
@@ -58,7 +58,7 @@ function App() {
                 </PrivateRoute>
               }
             />
-            <Route path="/aichat" element={<AIChat />} />
+            <Route path="/aichat" element={<AiChat />} />
             <Route path="/create-video" element={<CreateVideo />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
