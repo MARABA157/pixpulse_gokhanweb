@@ -3,8 +3,7 @@ import { motion } from 'framer-motion';
 import { FaVideo, FaSpinner, FaExclamationCircle } from 'react-icons/fa';
 import toast from 'react-hot-toast';
 
-const API_KEY = import.meta.env.VITE_REPLICATE_API_KEY;
-const MODEL_VERSION = "2b017650c1ac101584b12b0694c90768edac949d798e8251b7156ef4d44a5e68";
+const GRADIO_API_URL = "https://ysharma-animatediff.hf.space/api/predict";
 
 // Yeni arka plan resimleri
 const backgrounds = [
@@ -16,90 +15,64 @@ const backgrounds = [
 
 const CreateVideo: React.FC = () => {
   const [prompt, setPrompt] = useState('');
-  const [generatedVideo, setGeneratedVideo] = useState<string | null>(null);
-  const [isGenerating, setIsGenerating] = useState(false);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [videoUrl, setVideoUrl] = useState('');
   const [currentBackground, setCurrentBackground] = useState(0);
 
-  // Arka plan değiştirme efekti
   useEffect(() => {
     const interval = setInterval(() => {
       setCurrentBackground((prev) => (prev + 1) % backgrounds.length);
-    }, 5000); // Her 5 saniyede bir değiş
-
+    }, 5000);
     return () => clearInterval(interval);
   }, []);
 
-  const handleGenerate = async () => {
-    if (!prompt.trim()) {
-      toast.error('Lütfen bir açıklama girin');
+  const generateVideo = async () => {
+    if (!prompt) {
+      toast.error('Lütfen bir prompt girin');
       return;
     }
-    
-    setIsGenerating(true);
+
+    setLoading(true);
     setError('');
-    setGeneratedVideo(null);
-    
+    setVideoUrl('');
+
     try {
-      // İlk API isteği - Tahmin oluşturma
-      const response = await fetch('https://api.replicate.com/v1/predictions', {
+      const response = await fetch(GRADIO_API_URL, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Token ${API_KEY}`
         },
         body: JSON.stringify({
-          version: MODEL_VERSION,
-          input: {
-            prompt: prompt
-          }
+          data: [
+            prompt,  // Text prompt
+            8,       // Number of frames
+            24,      // FPS
+            "ddim",  // Scheduler
+            7.5,     // Guidance scale
+            25,      // Num inference steps
+            false,   // Use NSFW checker
+            1234,    // Seed
+          ]
         })
       });
 
-      if (!response.ok) {
-        throw new Error('Video oluşturma başlatılamadı');
+      const data = await response.json();
+      
+      if (data.error) {
+        throw new Error(data.error);
       }
 
-      const prediction = await response.json();
-      
-      // Tahmin durumunu kontrol et
-      let videoUrl = null;
-      let attempts = 0;
-      const maxAttempts = 60; // 5 dakika (5s aralıklarla)
-      
-      while (attempts < maxAttempts) {
-        const statusResponse = await fetch(`https://api.replicate.com/v1/predictions/${prediction.id}`, {
-          headers: {
-            'Authorization': `Token ${API_KEY}`,
-            'Content-Type': 'application/json',
-          },
-        });
-        
-        const result = await statusResponse.json();
-        
-        if (result.status === 'succeeded') {
-          videoUrl = result.output;
-          break;
-        } else if (result.status === 'failed') {
-          throw new Error('Video oluşturma başarısız oldu');
-        }
-        
-        attempts++;
-        await new Promise(resolve => setTimeout(resolve, 5000)); // 5s bekle
-      }
-      
-      if (videoUrl) {
-        setGeneratedVideo(videoUrl);
-        toast.success('Video başarıyla oluşturuldu!');
-      } else {
-        throw new Error('Video oluşturma zaman aşımına uğradı');
-      }
+      // Gradio returns an array of results, video will be in data[0]
+      const videoResult = data.data[0];
+      setVideoUrl(videoResult);
+      toast.success('Video başarıyla oluşturuldu!');
     } catch (err) {
-      console.error('Error:', err);
+      console.error('Video generation error:', err);
       setError('Video oluşturulurken bir hata oluştu. Lütfen tekrar deneyin.');
       toast.error('Video oluşturulamadı');
     } finally {
-      setIsGenerating(false);
+      setLoading(false);
     }
   };
 
@@ -132,13 +105,13 @@ const CreateVideo: React.FC = () => {
 
         <div className="flex justify-center">
           <button
-            onClick={handleGenerate}
-            disabled={isGenerating}
+            onClick={generateVideo}
+            disabled={loading}
             className={`flex items-center space-x-2 px-6 py-3 rounded-lg text-white font-semibold ${
-              isGenerating ? 'bg-gray-600' : 'bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700'
+              loading ? 'bg-gray-600' : 'bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700'
             }`}
           >
-            {isGenerating ? (
+            {loading ? (
               <>
                 <FaSpinner className="animate-spin" />
                 <span>Oluşturuluyor...</span>
@@ -159,7 +132,7 @@ const CreateVideo: React.FC = () => {
           </div>
         )}
 
-        {generatedVideo && (
+        {videoUrl && (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -167,7 +140,7 @@ const CreateVideo: React.FC = () => {
           >
             <h2 className="text-2xl font-semibold mb-4 text-white">Oluşturulan Video:</h2>
             <video
-              src={generatedVideo}
+              src={videoUrl}
               controls
               className="w-full rounded-lg shadow-lg"
             />
