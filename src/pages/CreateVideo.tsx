@@ -3,7 +3,7 @@ import { motion } from 'framer-motion';
 import { FaVideo, FaSpinner, FaExclamationCircle } from 'react-icons/fa';
 import toast from 'react-hot-toast';
 
-const API_KEY = "r8_7JG1Y0Ue9zBzqPGLPFgDXcnXEfL0sPxlRdgZL";
+const API_KEY = import.meta.env.VITE_REPLICATE_API_KEY;
 const MODEL_VERSION = "2b017650c1ac101584b12b0694c90768edac949d798e8251b7156ef4d44a5e68";
 
 // Yeni arka plan resimleri

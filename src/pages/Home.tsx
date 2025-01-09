@@ -9,22 +9,22 @@ const backgrounds = [
   {
     id: 1,
     title: "Deniz",
-    image: "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?q=80&w=2073&auto=format&fit=crop"
+    image: "/images/backgrounds/beach.jpg"
   },
   {
     id: 2,
     title: "Kumsal",
-    image: "https://images.unsplash.com/photo-1519046904884-53103b34b206?q=80&w=2070&auto=format&fit=crop"
+    image: "/images/backgrounds/sunset.jpg"
   },
   {
     id: 3,
     title: "Şehir",
-    image: "https://images.unsplash.com/photo-1449824913935-59a10b8d2000?q=80&w=1920&auto=format&fit=crop"
+    image: "/images/backgrounds/city.jpg"
   },
   {
     id: 4,
     title: "Sokak",
-    image: "https://images.unsplash.com/photo-1514924013411-cbf25faa35bb?q=80&w=1920&auto=format&fit=crop"
+    image: "/images/backgrounds/street.jpg"
   }
 ];
 
