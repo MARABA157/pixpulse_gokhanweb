@@ -1,31 +1,15 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { FaVideo, FaSpinner, FaExclamationCircle } from 'react-icons/fa';
+import { FaVideo, FaSpinner } from 'react-icons/fa';
 import toast from 'react-hot-toast';
 
-const GRADIO_API_URL = "https://ysharma-animatediff.hf.space/api/predict";
-
-// Yeni arka plan resimleri
-const backgrounds = [
-  '/backgrounds/mountain.jpg',
-  '/backgrounds/forest.jpg',
-  '/backgrounds/sunset.jpg',
-  '/backgrounds/aurora.jpg',
-];
+const API_URL = "https://api.stability.ai/v1/generation/stable-video-diffusion/text-to-video";
+const API_KEY = import.meta.env.VITE_STABILITY_API_KEY;
 
 const CreateVideo: React.FC = () => {
   const [prompt, setPrompt] = useState('');
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
   const [videoUrl, setVideoUrl] = useState('');
-  const [currentBackground, setCurrentBackground] = useState(0);
-
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setCurrentBackground((prev) => (prev + 1) % backgrounds.length);
-    }, 5000);
-    return () => clearInterval(interval);
-  }, []);
 
   const generateVideo = async () => {
     if (!prompt) {
@@ -34,26 +18,26 @@ const CreateVideo: React.FC = () => {
     }
 
     setLoading(true);
-    setError('');
     setVideoUrl('');
 
     try {
-      const response = await fetch(GRADIO_API_URL, {
+      const response = await fetch(API_URL, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${API_KEY}`
         },
         body: JSON.stringify({
-          data: [
-            prompt,  // Text prompt
-            8,       // Number of frames
-            24,      // FPS
-            "ddim",  // Scheduler
-            7.5,     // Guidance scale
-            25,      // Num inference steps
-            false,   // Use NSFW checker
-            1234,    // Seed
-          ]
+          text_prompts: [
+            {
+              text: prompt,
+              weight: 1
+            }
+          ],
+          height: 576,
+          width: 1024,
+          num_frames: 24,
+          fps: 8
         })
       });
 
@@ -63,91 +47,77 @@ const CreateVideo: React.FC = () => {
         throw new Error(data.error);
       }
 
-      // Gradio returns an array of results, video will be in data[0]
-      const videoResult = data.data[0];
+      // Video URL'ini al
+      const videoResult = data.artifacts[0].video;
       setVideoUrl(videoResult);
       toast.success('Video başarıyla oluşturuldu!');
     } catch (err) {
       console.error('Video generation error:', err);
-      setError('Video oluşturulurken bir hata oluştu. Lütfen tekrar deneyin.');
-      toast.error('Video oluşturulamadı');
+      toast.error('Video oluşturulurken bir hata oluştu. Lütfen tekrar deneyin.');
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      className="min-h-screen p-8 relative"
-      style={{
-        backgroundImage: `url(${backgrounds[currentBackground]})`,
-        backgroundSize: 'cover',
-        backgroundPosition: 'center',
-        backgroundRepeat: 'no-repeat',
-        transition: 'background-image 1s ease-in-out'
-      }}
-    >
-      <div className="max-w-4xl mx-auto bg-black bg-opacity-80 p-8 rounded-lg shadow-2xl">
-        <h1 className="text-4xl font-bold mb-8 text-center text-white">Video Oluştur</h1>
-        
-        <div className="mb-6">
-          <textarea
-            value={prompt}
-            onChange={(e) => setPrompt(e.target.value)}
-            placeholder="Videonuz için bir açıklama yazın..."
-            className="w-full p-4 bg-gray-800 text-white rounded-lg focus:ring-2 focus:ring-blue-500 resize-none"
-            rows={4}
-          />
-        </div>
+    <div className="min-h-screen flex items-center justify-center p-4">
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="w-full max-w-2xl bg-gray-900 bg-opacity-90 p-8 rounded-xl shadow-2xl"
+      >
+        <h1 className="text-3xl font-bold text-white mb-8 text-center">Video Oluştur</h1>
 
-        <div className="flex justify-center">
-          <button
-            onClick={generateVideo}
-            disabled={loading}
-            className={`flex items-center space-x-2 px-6 py-3 rounded-lg text-white font-semibold ${
-              loading ? 'bg-gray-600' : 'bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700'
-            }`}
-          >
-            {loading ? (
-              <>
-                <FaSpinner className="animate-spin" />
-                <span>Oluşturuluyor...</span>
-              </>
-            ) : (
-              <>
-                <FaVideo />
-                <span>Video Oluştur</span>
-              </>
-            )}
-          </button>
-        </div>
-
-        {error && (
-          <div className="mt-6 p-4 bg-red-500 bg-opacity-20 rounded-lg flex items-center space-x-2 text-red-300">
-            <FaExclamationCircle />
-            <span>{error}</span>
-          </div>
-        )}
-
-        {videoUrl && (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="mt-8"
-          >
-            <h2 className="text-2xl font-semibold mb-4 text-white">Oluşturulan Video:</h2>
-            <video
-              src={videoUrl}
-              controls
-              className="w-full rounded-lg shadow-lg"
+        <div className="space-y-6">
+          <div>
+            <textarea
+              value={prompt}
+              onChange={(e) => setPrompt(e.target.value)}
+              placeholder="Videonuzu tanımlayın..."
+              className="w-full p-4 bg-gray-800 text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              rows={4}
             />
-          </motion.div>
-        )}
-      </div>
-    </motion.div>
+          </div>
+
+          <div className="flex justify-center">
+            <button
+              onClick={generateVideo}
+              disabled={loading}
+              className={`flex items-center space-x-2 px-6 py-3 rounded-lg text-white font-semibold ${
+                loading ? 'bg-gray-600' : 'bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700'
+              }`}
+            >
+              {loading ? (
+                <>
+                  <FaSpinner className="animate-spin" />
+                  <span>Oluşturuluyor...</span>
+                </>
+              ) : (
+                <>
+                  <FaVideo />
+                  <span>Video Oluştur</span>
+                </>
+              )}
+            </button>
+          </div>
+
+          {videoUrl && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2 }}
+            >
+              <h2 className="text-2xl font-semibold mb-4 text-white">Oluşturulan Video:</h2>
+              <video
+                src={videoUrl}
+                controls
+                className="w-full rounded-lg shadow-lg"
+              />
+            </motion.div>
+          )}
+        </div>
+      </motion.div>
+    </div>
   );
 };
 
