@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { FaVideo, FaSpinner, FaExclamationCircle } from 'react-icons/fa';
 import toast from 'react-hot-toast';
@@ -6,11 +6,29 @@ import toast from 'react-hot-toast';
 const API_KEY = "r8_7JG1Y0Ue9zBzqPGLPFgDXcnXEfL0sPxlRdgZL";
 const MODEL_VERSION = "2b017650c1ac101584b12b0694c90768edac949d798e8251b7156ef4d44a5e68";
 
+// Yeni arka plan resimleri
+const backgrounds = [
+  '/backgrounds/mountain.jpg',
+  '/backgrounds/forest.jpg',
+  '/backgrounds/sunset.jpg',
+  '/backgrounds/aurora.jpg',
+];
+
 const CreateVideo: React.FC = () => {
   const [prompt, setPrompt] = useState('');
   const [generatedVideo, setGeneratedVideo] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState('');
+  const [currentBackground, setCurrentBackground] = useState(0);
+
+  // Arka plan değiştirme efekti
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentBackground((prev) => (prev + 1) % backgrounds.length);
+    }, 5000); // Her 5 saniyede bir değiş
+
+    return () => clearInterval(interval);
+  }, []);
 
   const handleGenerate = async () => {
     if (!prompt.trim()) {
@@ -86,94 +104,77 @@ const CreateVideo: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen relative">
-      {/* Background */}
-      <div className="fixed inset-0 w-full h-full">
-        <div className="absolute inset-0 bg-black bg-opacity-50" />
-        <img
-          src="https://images.unsplash.com/photo-1478720568477-152d9b164e26?q=80&w=2070&auto=format&fit=crop"
-          alt="Film Background"
-          className="absolute inset-0 w-full h-full object-cover"
-        />
-      </div>
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="min-h-screen p-8 relative"
+      style={{
+        backgroundImage: `url(${backgrounds[currentBackground]})`,
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        backgroundRepeat: 'no-repeat',
+        transition: 'background-image 1s ease-in-out'
+      }}
+    >
+      <div className="max-w-4xl mx-auto bg-black bg-opacity-80 p-8 rounded-lg shadow-2xl">
+        <h1 className="text-4xl font-bold mb-8 text-center text-white">Video Oluştur</h1>
+        
+        <div className="mb-6">
+          <textarea
+            value={prompt}
+            onChange={(e) => setPrompt(e.target.value)}
+            placeholder="Videonuz için bir açıklama yazın..."
+            className="w-full p-4 bg-gray-800 text-white rounded-lg focus:ring-2 focus:ring-blue-500 resize-none"
+            rows={4}
+          />
+        </div>
 
-      {/* Content */}
-      <div className="relative z-10 container mx-auto px-4 py-12">
-        <div className="max-w-3xl mx-auto">
+        <div className="flex justify-center">
+          <button
+            onClick={handleGenerate}
+            disabled={isGenerating}
+            className={`flex items-center space-x-2 px-6 py-3 rounded-lg text-white font-semibold ${
+              isGenerating ? 'bg-gray-600' : 'bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700'
+            }`}
+          >
+            {isGenerating ? (
+              <>
+                <FaSpinner className="animate-spin" />
+                <span>Oluşturuluyor...</span>
+              </>
+            ) : (
+              <>
+                <FaVideo />
+                <span>Video Oluştur</span>
+              </>
+            )}
+          </button>
+        </div>
+
+        {error && (
+          <div className="mt-6 p-4 bg-red-500 bg-opacity-20 rounded-lg flex items-center space-x-2 text-red-300">
+            <FaExclamationCircle />
+            <span>{error}</span>
+          </div>
+        )}
+
+        {generatedVideo && (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
-            className="bg-gray-900 bg-opacity-90 p-8 rounded-lg shadow-xl"
+            className="mt-8"
           >
-            <div className="flex items-center mb-6">
-              <FaVideo className="text-4xl text-blue-500 mr-4" />
-              <h1 className="text-3xl font-bold text-white">Video Oluştur</h1>
-            </div>
-
-            <div className="space-y-6">
-              <div>
-                <label htmlFor="prompt" className="block text-sm font-medium text-gray-300 mb-2">
-                  Video Açıklaması
-                </label>
-                <textarea
-                  id="prompt"
-                  value={prompt}
-                  onChange={(e) => setPrompt(e.target.value)}
-                  placeholder="Videonuzu açıklayın... Örnek: Güneş batarken sahilde yürüyen bir çift"
-                  className="w-full px-4 py-3 bg-gray-800 text-white rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                  rows={4}
-                />
-              </div>
-
-              <button
-                onClick={handleGenerate}
-                disabled={isGenerating}
-                className={`w-full py-3 px-6 rounded-lg font-semibold flex items-center justify-center space-x-2 ${
-                  isGenerating
-                    ? 'bg-gray-600 cursor-not-allowed'
-                    : 'bg-blue-500 hover:bg-blue-600'
-                } text-white transition-colors`}
-              >
-                {isGenerating ? (
-                  <>
-                    <FaSpinner className="animate-spin" />
-                    <span>Video Oluşturuluyor...</span>
-                  </>
-                ) : (
-                  <>
-                    <FaVideo />
-                    <span>Video Oluştur</span>
-                  </>
-                )}
-              </button>
-
-              {error && (
-                <div className="flex items-center space-x-2 text-red-400 bg-red-900 bg-opacity-50 p-4 rounded-lg">
-                  <FaExclamationCircle />
-                  <p>{error}</p>
-                </div>
-              )}
-
-              {generatedVideo && (
-                <div className="mt-8">
-                  <h2 className="text-xl font-semibold text-white mb-4">Oluşturulan Video:</h2>
-                  <div className="aspect-w-16 aspect-h-9 bg-gray-800 rounded-lg overflow-hidden">
-                    <video
-                      src={generatedVideo}
-                      controls
-                      className="w-full h-full object-contain"
-                    >
-                      Tarayıcınız video oynatmayı desteklemiyor.
-                    </video>
-                  </div>
-                </div>
-              )}
-            </div>
+            <h2 className="text-2xl font-semibold mb-4 text-white">Oluşturulan Video:</h2>
+            <video
+              src={generatedVideo}
+              controls
+              className="w-full rounded-lg shadow-lg"
+            />
           </motion.div>
-        </div>
+        )}
       </div>
-    </div>
+    </motion.div>
   );
 };
 
