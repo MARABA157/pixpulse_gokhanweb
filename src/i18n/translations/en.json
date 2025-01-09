@@ -1,0 +1,40 @@
+{
+  "common": {
+    "welcome": "Welcome to PixelPulse",
+    "login": "Login",
+    "register": "Register",
+    "logout": "Logout",
+    "profile": "Profile",
+    "settings": "Settings",
+    "search": "Search",
+    "loading": "Loading...",
+    "error": "An error occurred",
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit"
+  },
+  "home": {
+    "title": "Create, Share, and Discover Digital Art",
+    "subtitle": "Join our community of digital artists",
+    "explore": "Explore Artworks",
+    "create": "Create New",
+    "trending": "Trending Now",
+    "featured": "Featured Artists"
+  },
+  "marketplace": {
+    "title": "NFT Marketplace",
+    "buy": "Buy Now",
+    "sell": "Sell",
+    "price": "Price",
+    "bid": "Place Bid",
+    "collection": "Collection"
+  },
+  "profile": {
+    "myArtworks": "My Artworks",
+    "followers": "Followers",
+    "following": "Following",
+    "collections": "Collections",
+    "editProfile": "Edit Profile"
+  }
+}

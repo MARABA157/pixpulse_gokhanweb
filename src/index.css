@@ -1,0 +1,115 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    font-family: 'Inter', system-ui, sans-serif;
+    scroll-behavior: smooth;
+  }
+
+  body {
+    @apply bg-black text-white antialiased;
+  }
+}
+
+@layer components {
+  .container {
+    @apply max-w-7xl mx-auto px-4 sm:px-6 lg:px-8;
+  }
+
+  .btn {
+    @apply inline-flex items-center justify-center rounded-full font-semibold transition-all duration-200;
+  }
+
+  .btn-primary {
+    @apply bg-brand-600 text-white hover:bg-brand-700 focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 focus:ring-offset-black;
+  }
+
+  .btn-secondary {
+    @apply bg-white/10 text-white hover:bg-white/20 backdrop-blur-sm;
+  }
+}
+
+@layer utilities {
+  .text-gradient {
+    @apply bg-clip-text text-transparent bg-gradient-to-r from-brand-400 to-brand-600;
+  }
+
+  .bg-gradient {
+    @apply bg-gradient-to-r from-brand-600 to-brand-400;
+  }
+}
+
+@keyframes fade {
+  0% { opacity: 0; }
+  50% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+@keyframes scale {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.2); }
+  100% { transform: scale(1); }
+}
+
+@keyframes rotate {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+@keyframes pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.1); }
+}
+
+@keyframes bounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-20px); }
+}
+
+@keyframes scroll-left {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
+}
+
+@keyframes scroll-right {
+  0% {
+    transform: translateX(-50%);
+  }
+  100% {
+    transform: translateX(0);
+  }
+}
+
+.animate-fade {
+  animation: fade 4s infinite;
+}
+
+.animate-scale {
+  animation: scale 6s infinite;
+}
+
+.animate-rotate {
+  animation: rotate 8s infinite linear;
+}
+
+.animate-pulse {
+  animation: pulse 3s infinite;
+}
+
+.animate-bounce {
+  animation: bounce 2s infinite;
+}
+
+.animate-scroll-left {
+  animation: scroll-left 30s linear infinite;
+}
+
+.animate-scroll-right {
+  animation: scroll-right 30s linear infinite;
+}

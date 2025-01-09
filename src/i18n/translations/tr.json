@@ -1,0 +1,40 @@
+{
+  "common": {
+    "welcome": "PixelPulse'a Hoş Geldiniz",
+    "login": "Giriş Yap",
+    "register": "Kayıt Ol",
+    "logout": "Çıkış Yap",
+    "profile": "Profil",
+    "settings": "Ayarlar",
+    "search": "Ara",
+    "loading": "Yükleniyor...",
+    "error": "Bir hata oluştu",
+    "save": "Kaydet",
+    "cancel": "İptal",
+    "delete": "Sil",
+    "edit": "Düzenle"
+  },
+  "home": {
+    "title": "Dijital Sanat Oluştur, Paylaş ve Keşfet",
+    "subtitle": "Dijital sanatçılar topluluğumuza katıl",
+    "explore": "Eserleri Keşfet",
+    "create": "Yeni Oluştur",
+    "trending": "Öne Çıkanlar",
+    "featured": "Öne Çıkan Sanatçılar"
+  },
+  "marketplace": {
+    "title": "NFT Pazaryeri",
+    "buy": "Satın Al",
+    "sell": "Sat",
+    "price": "Fiyat",
+    "bid": "Teklif Ver",
+    "collection": "Koleksiyon"
+  },
+  "profile": {
+    "myArtworks": "Eserlerim",
+    "followers": "Takipçiler",
+    "following": "Takip Edilenler",
+    "collections": "Koleksiyonlar",
+    "editProfile": "Profili Düzenle"
+  }
+}
