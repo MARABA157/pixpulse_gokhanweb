@@ -17,6 +17,11 @@ const CreateVideo: React.FC = () => {
       return;
     }
 
+    if (!API_KEY) {
+      toast.error('API anahtarı bulunamadı');
+      return;
+    }
+
     setLoading(true);
     setVideoUrl('');
 
@@ -41,19 +46,26 @@ const CreateVideo: React.FC = () => {
         })
       });
 
-      const data = await response.json();
-      
-      if (data.error) {
-        throw new Error(data.error);
+      if (!response.ok) {
+        throw new Error(`API Error: ${response.status}`);
       }
 
-      // Video URL'ini al
+      const data = await response.json();
+      
+      if (!data || !data.artifacts || !data.artifacts[0]) {
+        throw new Error('Invalid API response format');
+      }
+
       const videoResult = data.artifacts[0].video;
+      if (!videoResult) {
+        throw new Error('No video URL in response');
+      }
+
       setVideoUrl(videoResult);
       toast.success('Video başarıyla oluşturuldu!');
     } catch (err) {
       console.error('Video generation error:', err);
-      toast.error('Video oluşturulurken bir hata oluştu. Lütfen tekrar deneyin.');
+      toast.error(err instanceof Error ? err.message : 'Video oluşturulurken bir hata oluştu');
     } finally {
       setLoading(false);
     }

@@ -26,6 +26,11 @@ const AIChat: React.FC = () => {
       return;
     }
 
+    if (!API_KEY) {
+      toast.error('API anahtarı bulunamadı');
+      return;
+    }
+
     const userMessage = newMessage.trim();
     setNewMessage('');
     setMessages(prev => [...prev, { text: userMessage, isBot: false }]);
@@ -53,17 +58,22 @@ const AIChat: React.FC = () => {
       });
 
       if (!response.ok) {
-        throw new Error('API yanıt vermedi');
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error?.message || `API Error: ${response.status}`);
       }
 
       const data = await response.json();
-      const botResponse = data.choices[0].message.content;
+      
+      if (!data || !data.choices || !data.choices[0] || !data.choices[0].message) {
+        throw new Error('Invalid API response format');
+      }
 
+      const botResponse = data.choices[0].message.content;
       setMessages(prev => [...prev, { text: botResponse, isBot: true }]);
       toast.success('Yanıt alındı');
-    } catch (error) {
-      console.error('Error:', error);
-      toast.error('Bir hata oluştu. Lütfen tekrar deneyin.');
+    } catch (err) {
+      console.error('Chat error:', err);
+      toast.error(err instanceof Error ? err.message : 'Sohbet hatası oluştu');
       setMessages(prev => [...prev, { text: "Üzgünüm, bir hata oluştu. Lütfen tekrar deneyin.", isBot: true }]);
     } finally {
       setIsLoading(false);
