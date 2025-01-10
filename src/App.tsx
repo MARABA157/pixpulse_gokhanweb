@@ -1,4 +1,4 @@
-import React, { Suspense, lazy } from 'react';
+import React, { Suspense } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import { AuthProvider } from './contexts/AuthContext';
@@ -7,17 +7,17 @@ import RotatingBackground from './components/RotatingBackground';
 import Navbar from './components/Navbar';
 import PrivateRoute from './components/PrivateRoute';
 
-// Lazy loaded components
-const Home = lazy(() => import('./pages/Home'));
-const Login = lazy(() => import('./pages/auth/Login'));
-const Register = lazy(() => import('./pages/auth/Register'));
-const Explore = lazy(() => import('./pages/Explore'));
-const Profile = lazy(() => import('./pages/Profile'));
-const Settings = lazy(() => import('./pages/Settings'));
-const Create = lazy(() => import('./pages/Create'));
-const Messages = lazy(() => import('./pages/Messages'));
-const AiChat = lazy(() => import('./pages/AiChat'));
-const CreateVideo = lazy(() => import('./pages/CreateVideo'));
+// Import pages directly
+import Home from './pages/Home';
+import Login from './pages/auth/Login';
+import Register from './pages/auth/Register';
+import Explore from './pages/Explore';
+import Profile from './pages/Profile';
+import Settings from './pages/Settings';
+import Create from './pages/Create';
+import Messages from './pages/Messages';
+import AiChat from './pages/AiChat';
+import CreateVideo from './pages/CreateVideo';
 
 const App: React.FC = () => {
   return (
@@ -33,29 +33,13 @@ const App: React.FC = () => {
                 <Route path="/login" element={<Login />} />
                 <Route path="/register" element={<Register />} />
                 <Route path="/explore" element={<Explore />} />
-                <Route path="/profile" element={
-                  <PrivateRoute>
-                    <Profile />
-                  </PrivateRoute>
-                } />
-                <Route path="/settings" element={
-                  <PrivateRoute>
-                    <Settings />
-                  </PrivateRoute>
-                } />
-                <Route path="/create" element={
-                  <PrivateRoute>
-                    <Create />
-                  </PrivateRoute>
-                } />
-                <Route path="/messages" element={
-                  <PrivateRoute>
-                    <Messages />
-                  </PrivateRoute>
-                } />
+                <Route path="/profile" element={<PrivateRoute><Profile /></PrivateRoute>} />
+                <Route path="/settings" element={<PrivateRoute><Settings /></PrivateRoute>} />
+                <Route path="/create" element={<PrivateRoute><Create /></PrivateRoute>} />
+                <Route path="/messages" element={<PrivateRoute><Messages /></PrivateRoute>} />
                 <Route path="/aichat" element={<AiChat />} />
                 <Route path="/create-video" element={<CreateVideo />} />
-                <Route path="*" element={<Navigate to="/" replace />} />
+                <Route path="*" element={<Navigate to="/" />} />
               </Routes>
             </Suspense>
           </main>
