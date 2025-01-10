@@ -2,20 +2,20 @@ import React, { Suspense, lazy } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import { AuthProvider } from './contexts/AuthContext';
-import Navbar from './components/Navbar';
-import PrivateRoute from './components/PrivateRoute';
 import Loading from './components/Loading';
 import RotatingBackground from './components/RotatingBackground';
+import Navbar from './components/Navbar';
+import PrivateRoute from './components/PrivateRoute';
 
 // Lazy loaded components
 const Home = lazy(() => import('./pages/Home'));
-const Login = lazy(() => import('./pages/auth/Login'));
-const Register = lazy(() => import('./pages/auth/Register'));
+const Login = lazy(() => import('./pages/Login'));
+const Register = lazy(() => import('./pages/Register'));
+const Explore = lazy(() => import('./pages/Explore'));
 const Profile = lazy(() => import('./pages/Profile'));
 const Settings = lazy(() => import('./pages/Settings'));
 const Create = lazy(() => import('./pages/Create'));
 const Messages = lazy(() => import('./pages/Messages'));
-const Explore = lazy(() => import('./pages/Explore'));
 const AiChat = lazy(() => import('./pages/AiChat'));
 const CreateVideo = lazy(() => import('./pages/CreateVideo'));
 
@@ -23,48 +23,36 @@ const App: React.FC = () => {
   return (
     <AuthProvider>
       <Router>
-        <RotatingBackground />
         <div className="min-h-screen bg-black text-white">
+          <RotatingBackground />
           <Navbar />
-          <main className="pt-16">
+          <main className="relative z-10 pt-16">
             <Suspense fallback={<Loading />}>
               <Routes>
                 <Route path="/" element={<Home />} />
                 <Route path="/login" element={<Login />} />
                 <Route path="/register" element={<Register />} />
                 <Route path="/explore" element={<Explore />} />
-                <Route
-                  path="/profile"
-                  element={
-                    <PrivateRoute>
-                      <Profile />
-                    </PrivateRoute>
-                  }
-                />
-                <Route
-                  path="/settings"
-                  element={
-                    <PrivateRoute>
-                      <Settings />
-                    </PrivateRoute>
-                  }
-                />
-                <Route
-                  path="/create"
-                  element={
-                    <PrivateRoute>
-                      <Create />
-                    </PrivateRoute>
-                  }
-                />
-                <Route
-                  path="/messages"
-                  element={
-                    <PrivateRoute>
-                      <Messages />
-                    </PrivateRoute>
-                  }
-                />
+                <Route path="/profile" element={
+                  <PrivateRoute>
+                    <Profile />
+                  </PrivateRoute>
+                } />
+                <Route path="/settings" element={
+                  <PrivateRoute>
+                    <Settings />
+                  </PrivateRoute>
+                } />
+                <Route path="/create" element={
+                  <PrivateRoute>
+                    <Create />
+                  </PrivateRoute>
+                } />
+                <Route path="/messages" element={
+                  <PrivateRoute>
+                    <Messages />
+                  </PrivateRoute>
+                } />
                 <Route path="/aichat" element={<AiChat />} />
                 <Route path="/create-video" element={<CreateVideo />} />
                 <Route path="*" element={<Navigate to="/" replace />} />
@@ -72,7 +60,7 @@ const App: React.FC = () => {
             </Suspense>
           </main>
         </div>
-        <Toaster
+        <Toaster 
           position="top-right"
           toastOptions={{
             duration: 3000,
