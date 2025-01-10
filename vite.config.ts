@@ -9,24 +9,28 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'masked-icon.svg'],
+      includeAssets: ['favicon.ico', 'logo192.png', 'logo512.png'],
       manifest: {
-        name: 'PixelPulse',
+        name: 'PixelPulse - AI Sanat Platformu',
         short_name: 'PixelPulse',
-        description: 'AI Video Generation Platform',
+        description: 'AI destekli dijital sanat platformu',
         theme_color: '#000000',
         background_color: '#000000',
         display: 'standalone',
+        start_url: '.',
+        scope: '.',
         icons: [
           {
-            src: 'pwa-192x192.png',
+            src: 'logo192.png',
             sizes: '192x192',
-            type: 'image/png'
+            type: 'image/png',
+            purpose: 'any maskable'
           },
           {
-            src: 'pwa-512x512.png',
+            src: 'logo512.png',
             sizes: '512x512',
-            type: 'image/png'
+            type: 'image/png',
+            purpose: 'any maskable'
           }
         ]
       }
@@ -52,13 +56,10 @@ export default defineConfig({
     rollupOptions: {
       output: {
         manualChunks: {
-          'react-vendor': ['react', 'react-dom'],
-          'ui-vendor': ['framer-motion', 'react-icons'],
-          vendor: ['react-router-dom'],
-          firebase: ['firebase/app', 'firebase/auth', 'firebase/firestore', 'firebase/storage']
-        }
-      }
-    }
+          vendor: ['react', 'react-dom', 'react-router-dom'],
+        },
+      },
+    },
   },
   preview: {
     port: 4173,
