@@ -1,79 +1,108 @@
-import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
-import { motion } from 'framer-motion';
-import { useAuth } from '../contexts/AuthContext';
-import { features } from '../data/features';
-import { exploreImages } from '../data/explore';
+import React, { useEffect, useState } from 'react';
+import { supabase } from '../config/supabase';
+import ArtworkCard from '../components/gallery/ArtworkCard';
 import BackgroundSlider from '../components/BackgroundSlider';
+import { useAuth } from '../contexts/AuthContext';
+import toast from 'react-hot-toast';
 
-const backgrounds = [
-  {
-    id: 1,
-    title: "Deniz",
-    image: "/images/backgrounds/beach.jpg"
-  },
-  {
-    id: 2,
-    title: "Kumsal",
-    image: "/images/backgrounds/sunset.jpg"
-  },
-  {
-    id: 3,
-    title: "Şehir",
-    image: "/images/backgrounds/city.jpg"
-  },
-  {
-    id: 4,
-    title: "Sokak",
-    image: "/images/backgrounds/street.jpg"
-  }
-];
+interface Artwork {
+  id: string;
+  title: string;
+  description: string;
+  image_url: string;
+  creator: {
+    username: string;
+    avatar_url?: string;
+  };
+  likes: number;
+  has_liked?: boolean;
+  has_saved?: boolean;
+}
 
-const Home: React.FC = () => {
+export default function Home() {
   const { user } = useAuth();
-  const [currentBackground, setCurrentBackground] = useState(0);
+  const [artworks, setArtworks] = useState<Artwork[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const interval = setInterval(() => {
-      setCurrentBackground((prev) => (prev + 1) % backgrounds.length);
-    }, 4000);
-    return () => clearInterval(interval);
-  }, []);
+    fetchArtworks();
+  }, [user]);
+
+  const fetchArtworks = async () => {
+    try {
+      setLoading(true);
+      
+      const { data: artworksData, error } = await supabase
+        .from('artworks')
+        .select(`
+          *,
+          creator:profiles!artworks_creator_id_fkey(username, avatar_url),
+          likes(count),
+          user_likes:likes!inner(user_id)
+        `)
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('Error fetching artworks:', error);
+        toast.error('Sanat eserleri yüklenirken bir hata oluştu');
+        return;
+      }
+
+      const formattedArtworks = artworksData.map(artwork => ({
+        ...artwork,
+        likes_count: artwork.likes?.[0]?.count || 0,
+        is_liked: user ? artwork.user_likes?.some(like => like.user_id === user.id) : false
+      }));
+
+      setArtworks(formattedArtworks);
+    } catch (error) {
+      console.error('Error:', error);
+      toast.error('Bir hata oluştu');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-32 w-32 border-t-2 border-b-2 border-purple-500"></div>
+      </div>
+    );
+  }
 
   return (
-    <>
+    <div className="min-h-screen">
       <BackgroundSlider />
-      <div className="min-h-screen flex flex-col items-center justify-center text-white relative z-10">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8 }}
-          className="text-center px-4"
-        >
-          <h1 className="text-5xl md:text-7xl font-bold mb-6">
-            Pixel Pulse
-          </h1>
-          <p className="text-xl md:text-2xl mb-8 max-w-2xl mx-auto">
-            Dijital sanatın kalbi burada atıyor. Eserlerinizi paylaşın, keşfedin ve ilham alın.
-          </p>
-          <div className="space-x-4">
-            <Link
-              to="/gallery"
-              className="inline-block bg-white text-black px-8 py-3 rounded-lg font-semibold hover:bg-opacity-90 transition-colors"
-            >
-              Galeriyi Keşfet
-            </Link>
-            <Link
-              to="/create"
-              className="inline-block bg-transparent border-2 border-white px-8 py-3 rounded-lg font-semibold hover:bg-white hover:text-black transition-colors"
-            >
-              Eser Oluştur
-            </Link>
-          </div>
-        </motion.div>
-      </div>
-    </>
-  );
-};
+      
+      <div className="container mx-auto px-4 py-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          {artworks.map((artwork) => (
+            <ArtworkCard
+              key={artwork.id}
+              id={artwork.id}
+              title={artwork.title}
+              imageUrl={artwork.image_url}
+              description={artwork.description}
+              creator={artwork.creator}
+              likes={artwork.likes_count}
+              hasLiked={artwork.is_liked}
+              onLike={fetchArtworks}
+            />
+          ))}
+        </div>
 
-export default Home;
+        {artworks.length === 0 && (
+          <div className="text-center py-12">
+            <h3 className="text-2xl font-semibold text-gray-700 dark:text-gray-300">
+              Henüz hiç resim yok
+            </h3>
+            <p className="mt-2 text-gray-500 dark:text-gray-400">
+              İlk resmi yükleyen siz olun!
+            </p>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}

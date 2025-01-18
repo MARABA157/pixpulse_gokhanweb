@@ -1,158 +1,152 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-
-interface User {
-  id: string;
-  email: string;
-  displayName: string;
-}
+import { User } from '@supabase/supabase-js';
+import { supabase } from '../config/supabase';
+import { toast } from 'react-hot-toast';
 
 interface AuthContextType {
   user: User | null;
   loading: boolean;
-  error: string | null;
   login: (email: string, password: string) => Promise<void>;
-  register: (email: string, password: string, username: string) => Promise<void>;
+  signup: (email: string, password: string, username: string) => Promise<void>;
   logout: () => Promise<void>;
-  updateUserProfile: (displayName?: string, photoURL?: string) => Promise<void>;
 }
 
-const AuthContext = createContext<AuthContextType | null>(null);
+const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// Test kullanıcıları
-const TEST_USERS = [
-  {
-    id: '1',
-    email: 'test@example.com',
-    password: 'test123',
-    displayName: 'Test User'
-  },
-  {
-    id: '2',
-    email: 'admin@example.com',
-    password: 'admin123',
-    displayName: 'Admin User'
+export function useAuth() {
+  const context = useContext(AuthContext);
+  if (context === undefined) {
+    throw new Error('useAuth must be used within an AuthProvider');
   }
-];
-
-// Local storage anahtarı
-const AUTH_STORAGE_KEY = 'pixelpulse_auth';
+  return context;
+}
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<User | null>(() => {
-    const savedAuth = localStorage.getItem(AUTH_STORAGE_KEY);
-    return savedAuth ? JSON.parse(savedAuth) : null;
-  });
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [user, setUser] = useState<User | null>(null);
+  const [loading, setLoading] = useState(true);
 
-  // Kullanıcı durumunu local storage'a kaydet
   useEffect(() => {
-    if (user) {
-      localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(user));
-    } else {
-      localStorage.removeItem(AUTH_STORAGE_KEY);
-    }
-  }, [user]);
+    // Mevcut oturumu kontrol et
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUser(session?.user ?? null);
+      setLoading(false);
+    });
+
+    // Oturum değişikliklerini dinle
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null);
+      setLoading(false);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
 
   const login = async (email: string, password: string) => {
     try {
-      setLoading(true);
-      setError(null);
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
 
-      // Test kullanıcısını bul
-      const testUser = TEST_USERS.find(
-        (u) => u.email === email && u.password === password
-      );
+      if (error) throw error;
 
-      if (!testUser) {
-        throw new Error('Invalid email or password');
+      if (data?.user) {
+        if (!data.user.email_confirmed_at) {
+          throw new Error('Email adresinizi onaylamanız gerekiyor');
+        }
+        toast.success('Başarıyla giriş yaptınız!');
       }
-
-      // Kullanıcı bilgilerini ayarla (şifre hariç)
-      const { password: _, ...userWithoutPassword } = testUser;
-      setUser(userWithoutPassword);
-
-    } catch (error) {
-      setError((error as Error).message);
+    } catch (error: any) {
+      console.error('Login error:', error);
+      if (error.message.includes('Invalid login credentials')) {
+        toast.error('Geçersiz email veya şifre');
+      } else {
+        toast.error(error.message || 'Giriş yaparken bir hata oluştu');
+      }
       throw error;
-    } finally {
-      setLoading(false);
     }
   };
 
-  const register = async (email: string, password: string, username: string) => {
+  const signup = async (email: string, password: string, username: string) => {
     try {
-      setLoading(true);
-      setError(null);
+      // Önce kullanıcı adının kullanılabilir olduğunu kontrol et
+      const { data: existingUser, error: checkError } = await supabase
+        .from('profiles')
+        .select('username')
+        .eq('username', username)
+        .single();
 
-      // E-posta kullanımda mı kontrol et
-      if (TEST_USERS.some((u) => u.email === email)) {
-        throw new Error('Email already in use');
+      if (checkError && checkError.code !== 'PGRST116') {
+        throw checkError;
       }
 
-      // Yeni kullanıcı oluştur
-      const newUser = {
-        id: String(TEST_USERS.length + 1),
+      if (existingUser) {
+        throw new Error('Bu kullanıcı adı zaten kullanılıyor');
+      }
+
+      const { data, error } = await supabase.auth.signUp({
         email,
-        displayName: username
-      };
+        password,
+        options: {
+          data: {
+            username,
+          },
+        },
+      });
 
-      setUser(newUser);
+      if (error) throw error;
 
-    } catch (error) {
-      setError((error as Error).message);
+      if (data?.user) {
+        const { error: profileError } = await supabase
+          .from('profiles')
+          .insert([
+            {
+              id: data.user.id,
+              username,
+              created_at: new Date().toISOString(),
+            },
+          ]);
+
+        if (profileError) throw profileError;
+
+        toast.success('Hesabınız oluşturuldu! Email adresinizi onaylayın.');
+      }
+    } catch (error: any) {
+      console.error('Signup error:', error);
+      if (error.message.includes('already registered')) {
+        toast.error('Bu email adresi zaten kayıtlı');
+      } else {
+        toast.error(error.message || 'Kayıt olurken bir hata oluştu');
+      }
       throw error;
-    } finally {
-      setLoading(false);
     }
   };
 
   const logout = async () => {
     try {
-      setLoading(true);
-      setError(null);
-      setUser(null);
-    } catch (error) {
-      setError((error as Error).message);
+      const { error } = await supabase.auth.signOut();
+      if (error) throw error;
+      toast.success('Başarıyla çıkış yaptınız');
+    } catch (error: any) {
+      console.error('Logout error:', error);
+      toast.error(error.message || 'Çıkış yaparken bir hata oluştu');
       throw error;
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const updateUserProfile = async (displayName?: string, photoURL?: string) => {
-    try {
-      setLoading(true);
-      setError(null);
-      
-      if (user && displayName) {
-        setUser({ ...user, displayName });
-      }
-    } catch (error) {
-      setError((error as Error).message);
-      throw error;
-    } finally {
-      setLoading(false);
     }
   };
 
   const value = {
     user,
     loading,
-    error,
     login,
-    register,
+    signup,
     logout,
-    updateUserProfile,
   };
 
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
-}
-
-export function useAuth() {
-  const context = useContext(AuthContext);
-  if (!context) {
-    throw new Error('useAuth must be used within an AuthProvider');
-  }
-  return context;
+  return (
+    <AuthContext.Provider value={value}>
+      {!loading && children}
+    </AuthContext.Provider>
+  );
 }
