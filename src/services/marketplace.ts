@@ -1,54 +1,18 @@
-import { 
-  collection, 
-  query, 
-  where, 
-  getDocs, 
-  addDoc, 
-  updateDoc,
-  doc,
-  orderBy,
-  limit,
-  startAfter,
-  Timestamp,
-  increment
-} from 'firebase/firestore';
-import { db } from '../config/firebase';
-import { MarketplaceArtwork, ArtworkPrice, Bid } from '../types/marketplace';
+import { supabase } from '../config/supabase';
+import { Artwork, Order } from '../types/marketplace';
 
 export const marketplaceService = {
   // Eserleri getir
-  async getArtworks(
-    category?: string,
-    sortBy: 'price' | 'createdAt' | 'likes' = 'createdAt',
-    lastDoc?: any,
-    pageSize: number = 12
-  ) {
+  async getArtworks(page = 1, pageSize = 20) {
     try {
-      let q = query(
-        collection(db, 'marketplace'),
-        orderBy(sortBy, 'desc'),
-        limit(pageSize)
-      );
+      const { data: artworks, error } = await supabase
+        .from('artworks')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .range((page - 1) * pageSize, page * pageSize - 1);
 
-      if (category) {
-        q = query(q, where('category', '==', category));
-      }
-
-      if (lastDoc) {
-        q = query(q, startAfter(lastDoc));
-      }
-
-      const snapshot = await getDocs(q);
-      const artworks: MarketplaceArtwork[] = [];
-      
-      snapshot.forEach((doc) => {
-        artworks.push({ id: doc.id, ...doc.data() } as MarketplaceArtwork);
-      });
-
-      return {
-        artworks,
-        lastDoc: snapshot.docs[snapshot.docs.length - 1]
-      };
+      if (error) throw error;
+      return artworks;
     } catch (error) {
       console.error('Error fetching artworks:', error);
       throw error;
@@ -56,106 +20,141 @@ export const marketplaceService = {
   },
 
   // Eser detayını getir
-  async getArtworkById(artworkId: string) {
+  async getArtwork(artworkId: string) {
     try {
-      const docRef = doc(db, 'marketplace', artworkId);
-      const docSnap = await getDocs(docRef);
-      
-      if (docSnap.exists()) {
-        return { id: docSnap.id, ...docSnap.data() } as MarketplaceArtwork;
-      }
-      
-      throw new Error('Artwork not found');
+      const { data: artwork, error } = await supabase
+        .from('artworks')
+        .select('*')
+        .eq('id', artworkId)
+        .single();
+
+      if (error) throw error;
+      return artwork;
     } catch (error) {
       console.error('Error fetching artwork:', error);
       throw error;
     }
   },
 
-  // Eser sat
-  async listArtwork(artwork: Omit<MarketplaceArtwork, 'id'>) {
+  // Eser oluştur
+  async createArtwork(artwork: Omit<Artwork, 'id' | 'createdAt'>) {
     try {
-      const docRef = await addDoc(collection(db, 'marketplace'), {
-        ...artwork,
-        createdAt: Timestamp.now(),
-        isSold: false,
-        bids: [],
-        views: 0
-      });
+      const { data, error } = await supabase
+        .from('artworks')
+        .insert([
+          {
+            ...artwork,
+            created_at: new Date().toISOString()
+          }
+        ])
+        .select()
+        .single();
 
-      return docRef.id;
+      if (error) throw error;
+      return data;
     } catch (error) {
-      console.error('Error listing artwork:', error);
+      console.error('Error creating artwork:', error);
       throw error;
     }
   },
 
-  // Teklif ver
-  async placeBid(artworkId: string, bid: Omit<Bid, 'id' | 'timestamp'>) {
+  // Eser güncelle
+  async updateArtwork(artworkId: string, artwork: Partial<Artwork>) {
     try {
-      const artworkRef = doc(db, 'marketplace', artworkId);
-      const newBid = {
-        ...bid,
-        id: Math.random().toString(36).substr(2, 9),
-        timestamp: Timestamp.now()
-      };
+      const { data, error } = await supabase
+        .from('artworks')
+        .update(artwork)
+        .eq('id', artworkId)
+        .select()
+        .single();
 
-      await updateDoc(artworkRef, {
-        bids: arrayUnion(newBid),
-        highestBid: {
-          amount: bid.amount,
-          currency: bid.currency
+      if (error) throw error;
+      return data;
+    } catch (error) {
+      console.error('Error updating artwork:', error);
+      throw error;
+    }
+  },
+
+  // Eser sil
+  async deleteArtwork(artworkId: string) {
+    try {
+      const { error } = await supabase
+        .from('artworks')
+        .delete()
+        .eq('id', artworkId);
+
+      if (error) throw error;
+    } catch (error) {
+      console.error('Error deleting artwork:', error);
+      throw error;
+    }
+  },
+
+  // Sipariş oluştur
+  async createOrder(order: Omit<Order, 'id' | 'createdAt'>) {
+    try {
+      const { data, error } = await supabase
+        .from('orders')
+        .insert([
+          {
+            ...order,
+            created_at: new Date().toISOString()
+          }
+        ])
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    } catch (error) {
+      console.error('Error creating order:', error);
+      throw error;
+    }
+  },
+
+  // Sipariş durumunu güncelle
+  async updateOrderStatus(orderId: string, status: string) {
+    try {
+      const { error } = await supabase
+        .from('orders')
+        .update({ status })
+        .eq('id', orderId);
+
+      if (error) throw error;
+    } catch (error) {
+      console.error('Error updating order status:', error);
+      throw error;
+    }
+  },
+
+  // Kullanıcının siparişlerini getir
+  async getUserOrders(userId: string) {
+    try {
+      const { data: orders, error } = await supabase
+        .from('orders')
+        .select('*')
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      return orders;
+    } catch (error) {
+      console.error('Error fetching user orders:', error);
+      throw error;
+    }
+  },
+
+  // Eserleri dinle
+  subscribeToArtworks(callback: (artworks: Artwork[]) => void) {
+    return supabase
+      .channel('artworks')
+      .on('postgres_changes',
+        { event: '*', schema: 'public', table: 'artworks' },
+        (payload) => {
+          this.getArtworks().then(callback);
         }
-      });
-
-      return newBid;
-    } catch (error) {
-      console.error('Error placing bid:', error);
-      throw error;
-    }
-  },
-
-  // Satın al
-  async buyArtwork(artworkId: string, buyerId: string) {
-    try {
-      const artworkRef = doc(db, 'marketplace', artworkId);
-      
-      await updateDoc(artworkRef, {
-        isSold: true,
-        buyerId,
-        soldAt: Timestamp.now()
-      });
-
-      return true;
-    } catch (error) {
-      console.error('Error buying artwork:', error);
-      throw error;
-    }
-  },
-
-  // Görüntülenme sayısını artır
-  async incrementViews(artworkId: string) {
-    try {
-      const artworkRef = doc(db, 'marketplace', artworkId);
-      await updateDoc(artworkRef, {
-        views: increment(1)
-      });
-    } catch (error) {
-      console.error('Error incrementing views:', error);
-      throw error;
-    }
-  },
-
-  // Beğeni sayısını artır/azalt
-  async toggleLike(artworkId: string, increment: boolean) {
-    try {
-      const artworkRef = doc(db, 'marketplace', artworkId);
-      await updateDoc(artworkRef, {
-        likes: increment(increment ? 1 : -1)
-      });
-    } catch (error) {
-      console.error('Error toggling like:', error);
-      throw error;
-    }
+      )
+      .subscribe();
   }
 };

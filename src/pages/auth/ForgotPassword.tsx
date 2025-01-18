@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { sendPasswordResetEmail } from 'firebase/auth';
-import { auth } from '../../config/firebase';
+import { supabase } from '../../config/supabase';
 import { Mail, AlertCircle, ArrowLeft } from 'lucide-react';
 
 export default function ForgotPassword() {
@@ -17,10 +16,16 @@ export default function ForgotPassword() {
       setError('');
       setMessage('');
       setLoading(true);
-      await sendPasswordResetEmail(auth, email);
-      setMessage('Şifre sıfırlama bağlantısı e-posta adresinize gönderildi.');
-    } catch (err) {
-      setError('Şifre sıfırlama e-postası gönderilemedi.');
+
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/reset-password`
+      });
+
+      if (error) throw error;
+
+      setMessage('Şifre sıfırlama bağlantısı e-posta adresinize gönderildi');
+    } catch (err: any) {
+      setError(err.message);
     } finally {
       setLoading(false);
     }

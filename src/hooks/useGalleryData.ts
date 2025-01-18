@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { collection, query, where, orderBy, limit, getDocs, startAfter } from 'firebase/firestore';
-import { db } from '../config/firebase';
+import { supabase } from '../config/supabase';
+import { Artwork } from '../types/gallery';
 
 export interface GalleryArtwork {
   id: string;
@@ -37,51 +37,91 @@ export const useGalleryData = () => {
       setError(null);
 
       // Trend eserleri yükle
-      const trendingQuery = query(
-        collection(db, 'artworks'),
-        orderBy('likes', 'desc'),
-        limit(8)
-      );
-      
-      const trendingSnapshot = await getDocs(trendingQuery);
-      const trendingData = trendingSnapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      })) as GalleryArtwork[];
-      
-      setTrendingArtworks(trendingData);
+      let query = supabase
+        .from('artworks')
+        .select('*')
+        .order('likes', { ascending: false })
+        .limit(8);
+
+      const { data, error } = await query;
+
+      if (error) throw error;
+
+      if (data) {
+        const trendingData = data.map((artwork: any) => ({
+          id: artwork.id,
+          title: artwork.title,
+          description: artwork.description,
+          image: artwork.image,
+          artist: {
+            id: artwork.artist_id,
+            name: artwork.artist_name,
+            avatar: artwork.artist_avatar,
+          },
+          likes: artwork.likes,
+          views: artwork.views,
+          createdAt: artwork.created_at,
+          category: artwork.category,
+          style: artwork.style,
+          tags: artwork.tags,
+        })) as GalleryArtwork[];
+
+        setTrendingArtworks(trendingData);
+      }
 
       // Son eklenen eserleri yükle
-      const recentQuery = query(
-        collection(db, 'artworks'),
-        orderBy('createdAt', 'desc'),
-        limit(8)
-      );
-      
-      const recentSnapshot = await getDocs(recentQuery);
-      const recentData = recentSnapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      })) as GalleryArtwork[];
-      
-      setRecentArtworks(recentData);
+      query = supabase
+        .from('artworks')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(8);
+
+      const { data: recentData, error: recentError } = await query;
+
+      if (recentError) throw recentError;
+
+      if (recentData) {
+        const recentArtworksData = recentData.map((artwork: any) => ({
+          id: artwork.id,
+          title: artwork.title,
+          description: artwork.description,
+          image: artwork.image,
+          artist: {
+            id: artwork.artist_id,
+            name: artwork.artist_name,
+            avatar: artwork.artist_avatar,
+          },
+          likes: artwork.likes,
+          views: artwork.views,
+          createdAt: artwork.created_at,
+          category: artwork.category,
+          style: artwork.style,
+          tags: artwork.tags,
+        })) as GalleryArtwork[];
+
+        setRecentArtworks(recentArtworksData);
+      }
 
       // Öne çıkan sanatçıları yükle
-      const artistsQuery = query(
-        collection(db, 'users'),
-        where('isArtist', '==', true),
-        orderBy('followers', 'desc'),
-        limit(4)
-      );
-      
-      const artistsSnapshot = await getDocs(artistsQuery);
-      const artistsData = artistsSnapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      }));
-      
-      setFeaturedArtists(artistsData);
+      query = supabase
+        .from('users')
+        .select('*')
+        .eq('is_artist', true)
+        .order('followers', { ascending: false })
+        .limit(4);
 
+      const { data: artistsData, error: artistsError } = await query;
+
+      if (artistsError) throw artistsError;
+
+      if (artistsData) {
+        const artistsDataMapped = artistsData.map((artist: any) => ({
+          id: artist.id,
+          ...artist,
+        }));
+
+        setFeaturedArtists(artistsDataMapped);
+      }
     } catch (err) {
       console.error('Error loading gallery data:', err);
       setError('Veriler yüklenirken bir hata oluştu.');
@@ -100,6 +140,6 @@ export const useGalleryData = () => {
     featuredArtists,
     loading,
     error,
-    refreshData
+    refreshData,
   };
 };

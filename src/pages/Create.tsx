@@ -2,8 +2,7 @@ import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Wand2, Upload, Save, Undo, Redo, Download, Share2 } from 'lucide-react';
 import toast from 'react-hot-toast';
-import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { getFirestore, collection, addDoc } from 'firebase/firestore';
+import { supabase } from '../config/supabase';
 import { useAuth } from '../contexts/AuthContext';
 
 export default function Create() {
@@ -52,21 +51,31 @@ export default function Create() {
       const response = await fetch(imageUrl);
       const blob = await response.blob();
 
-      // Firebase Storage'a yükle
-      const storage = getStorage();
-      const filename = `artworks/${user.uid}/${Date.now()}.png`;
-      const storageRef = ref(storage, filename);
-      await uploadBytes(storageRef, blob);
-      const downloadUrl = await getDownloadURL(storageRef);
+      // Supabase Storage'a yükle
+      const { error: uploadError } = await supabase.storage
+        .from('artworks')
+        .upload(`${Date.now()}.png`, blob);
 
-      // Firestore'a kaydet
-      const db = getFirestore();
-      await addDoc(collection(db, 'artworks'), {
-        userId: user.uid,
-        prompt: prompt,
-        imageUrl: downloadUrl,
-        createdAt: new Date().toISOString(),
-      });
+      if (uploadError) throw uploadError;
+
+      // Get the public URL
+      const { data: { publicUrl } } = supabase.storage
+        .from('artworks')
+        .getPublicUrl(`${Date.now()}.png`);
+
+      // Supabase database'e kaydet
+      const { error: dbError } = await supabase
+        .from('artworks')
+        .insert([
+          {
+            prompt,
+            image_url: publicUrl,
+            user_id: user.id,
+            created_at: new Date().toISOString()
+          }
+        ]);
+
+      if (dbError) throw dbError;
 
       toast.success('Görsel başarıyla kaydedildi!');
     } catch (err) {
