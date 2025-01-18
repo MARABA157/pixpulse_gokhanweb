@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { supabase } from '../../config/supabase';
-import { UserPlus, Mail, Lock, User, AlertCircle, Upload } from 'lucide-react';
+import { UserPlus, Mail, Lock, User, AlertCircle } from 'lucide-react';
 
 export default function Register() {
   const [formData, setFormData] = useState({
@@ -10,7 +10,6 @@ export default function Register() {
     password: '',
     confirmPassword: '',
   });
-  const [avatar, setAvatar] = useState<File | null>(null);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
@@ -21,12 +20,6 @@ export default function Register() {
       ...prev,
       [name]: value
     }));
-  };
-
-  const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files?.[0]) {
-      setAvatar(e.target.files[0]);
-    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -53,23 +46,13 @@ export default function Register() {
 
       if (signUpError) throw signUpError;
 
-      // Avatar yükle
-      if (avatar && authData.user) {
-        const fileExt = avatar.name.split('.').pop();
-        const fileName = `${authData.user.id}.${fileExt}`;
-        const { error: uploadError } = await supabase.storage
-          .from('avatars')
-          .upload(fileName, avatar);
-
-        if (uploadError) throw uploadError;
-
-        // Profil güncelle
+      // Profil oluştur
+      if (authData.user) {
         const { error: updateError } = await supabase
           .from('profiles')
           .upsert({
             id: authData.user.id,
-            username: formData.username,
-            avatar_url: `${fileName}`
+            username: formData.username
           });
 
         if (updateError) throw updateError;
@@ -181,40 +164,6 @@ export default function Register() {
           </div>
 
           <div>
-            <label htmlFor="avatar" className="block text-sm font-medium text-gray-700">
-              Profil Fotoğrafı
-            </label>
-            <div className="mt-1 flex items-center">
-              <span className="inline-block h-12 w-12 rounded-full overflow-hidden bg-gray-100">
-                {avatar ? (
-                  <img
-                    src={URL.createObjectURL(avatar)}
-                    alt="Avatar preview"
-                    className="h-full w-full object-cover"
-                  />
-                ) : (
-                  <User className="h-full w-full text-gray-300" />
-                )}
-              </span>
-              <label
-                htmlFor="avatar-upload"
-                className="ml-5 bg-white py-2 px-3 border border-gray-300 rounded-md shadow-sm text-sm leading-4 font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 cursor-pointer"
-              >
-                <Upload className="h-4 w-4 inline-block mr-2" />
-                Yükle
-              </label>
-              <input
-                id="avatar-upload"
-                name="avatar"
-                type="file"
-                className="sr-only"
-                accept="image/*"
-                onChange={handleAvatarChange}
-              />
-            </div>
-          </div>
-
-          <div>
             <button
               type="submit"
               disabled={loading}
@@ -226,13 +175,13 @@ export default function Register() {
               {loading ? 'Kaydediliyor...' : 'Kayıt Ol'}
             </button>
           </div>
-        </form>
 
-        <div className="text-sm text-center">
-          <Link to="/login" className="font-medium text-indigo-600 hover:text-indigo-500">
-            Zaten hesabın var mı? Giriş yap
-          </Link>
-        </div>
+          <div className="text-sm text-center">
+            <Link to="/login" className="font-medium text-indigo-600 hover:text-indigo-500">
+              Zaten hesabın var mı? Giriş yap
+            </Link>
+          </div>
+        </form>
       </div>
     </div>
   );
