@@ -6,10 +6,15 @@ export default {
   ],
   theme: {
     extend: {
+      zIndex: {
+        '-10': '-10',
+      },
       animation: {
         'scroll': 'scroll 2s cubic-bezier(0.45, 0, 0.55, 1) infinite',
         'scroll-left': 'scroll-left 20s linear infinite',
-        'scroll-right': 'scroll-right 20s linear infinite'
+        'scroll-right': 'scroll-right 20s linear infinite',
+        'fade-in': 'fadeIn 1s ease-in-out',
+        'fade-out': 'fadeOut 1s ease-in-out',
       },
       keyframes: {
         scroll: {
@@ -23,7 +28,15 @@ export default {
         'scroll-right': {
           '0%': { transform: 'translateX(-50%)' },
           '100%': { transform: 'translateX(0)' }
-        }
+        },
+        fadeIn: {
+          '0%': { opacity: '0' },
+          '100%': { opacity: '1' },
+        },
+        fadeOut: {
+          '0%': { opacity: '1' },
+          '100%': { opacity: '0' },
+        },
       },
       colors: {
         'brand': {
