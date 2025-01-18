@@ -1,38 +1,17 @@
-import {
-  collection,
-  query,
-  where,
-  orderBy,
-  limit,
-  getDocs,
-  addDoc,
-  updateDoc,
-  doc,
-  arrayUnion,
-  Timestamp,
-  onSnapshot
-} from 'firebase/firestore';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { db, storage } from '../config/firebase';
+import { supabase } from '../config/supabase';
 import { Message, Chat, ChatParticipant } from '../types/messaging';
 
 export const messagingService = {
   // Sohbetleri getir
   async getChats(userId: string) {
     try {
-      const q = query(
-        collection(db, 'chats'),
-        where('participants', 'array-contains', userId),
-        orderBy('updatedAt', 'desc')
-      );
+      const { data: chats, error } = await supabase
+        .from('chats')
+        .select('*')
+        .contains('participants', [userId])
+        .order('updated_at', { ascending: false });
 
-      const snapshot = await getDocs(q);
-      const chats: Chat[] = [];
-      
-      snapshot.forEach((doc) => {
-        chats.push({ id: doc.id, ...doc.data() } as Chat);
-      });
-
+      if (error) throw error;
       return chats;
     } catch (error) {
       console.error('Error fetching chats:', error);
@@ -43,25 +22,15 @@ export const messagingService = {
   // Mesajları getir
   async getMessages(chatId: string, lastMessageId?: string) {
     try {
-      let q = query(
-        collection(db, `chats/${chatId}/messages`),
-        orderBy('timestamp', 'desc'),
-        limit(50)
-      );
+      const { data: messages, error } = await supabase
+        .from('messages')
+        .select('*')
+        .eq('chat_id', chatId)
+        .order('created_at', { ascending: false })
+        .limit(50);
 
-      if (lastMessageId) {
-        const lastDoc = await getDocs(doc(db, `chats/${chatId}/messages/${lastMessageId}`));
-        q = query(q, where('timestamp', '<', lastDoc.data()?.timestamp));
-      }
-
-      const snapshot = await getDocs(q);
-      const messages: Message[] = [];
-      
-      snapshot.forEach((doc) => {
-        messages.push({ id: doc.id, ...doc.data() } as Message);
-      });
-
-      return messages.reverse();
+      if (error) throw error;
+      return messages;
     } catch (error) {
       console.error('Error fetching messages:', error);
       throw error;
@@ -71,22 +40,20 @@ export const messagingService = {
   // Mesaj gönder
   async sendMessage(chatId: string, message: Omit<Message, 'id' | 'timestamp'>) {
     try {
-      const messageData = {
-        ...message,
-        timestamp: Timestamp.now()
-      };
+      const { data, error } = await supabase
+        .from('messages')
+        .insert([
+          {
+            chat_id: chatId,
+            ...message,
+            created_at: new Date().toISOString()
+          }
+        ])
+        .select()
+        .single();
 
-      const docRef = await addDoc(
-        collection(db, `chats/${chatId}/messages`),
-        messageData
-      );
-
-      await updateDoc(doc(db, 'chats', chatId), {
-        lastMessage: { ...messageData, id: docRef.id },
-        updatedAt: Timestamp.now()
-      });
-
-      return docRef.id;
+      if (error) throw error;
+      return data;
     } catch (error) {
       console.error('Error sending message:', error);
       throw error;
@@ -96,15 +63,20 @@ export const messagingService = {
   // Dosya yükle
   async uploadAttachment(chatId: string, file: File) {
     try {
-      const fileRef = ref(storage, `chats/${chatId}/${file.name}`);
-      await uploadBytes(fileRef, file);
-      const url = await getDownloadURL(fileRef);
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${chatId}/${Date.now()}.${fileExt}`;
 
-      return {
-        type: file.type.startsWith('image/') ? 'image' : 'file',
-        url,
-        name: file.name
-      };
+      const { error: uploadError } = await supabase.storage
+        .from('chat-attachments')
+        .upload(fileName, file);
+
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('chat-attachments')
+        .getPublicUrl(fileName);
+
+      return publicUrl;
     } catch (error) {
       console.error('Error uploading attachment:', error);
       throw error;
@@ -114,15 +86,20 @@ export const messagingService = {
   // Yeni sohbet oluştur
   async createChat(participants: string[]) {
     try {
-      const chatData = {
-        participants,
-        unreadCount: 0,
-        createdAt: Timestamp.now(),
-        updatedAt: Timestamp.now()
-      };
+      const { data, error } = await supabase
+        .from('chats')
+        .insert([
+          {
+            participants,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          }
+        ])
+        .select()
+        .single();
 
-      const docRef = await addDoc(collection(db, 'chats'), chatData);
-      return docRef.id;
+      if (error) throw error;
+      return data;
     } catch (error) {
       console.error('Error creating chat:', error);
       throw error;
@@ -132,18 +109,13 @@ export const messagingService = {
   // Mesajları okundu olarak işaretle
   async markAsRead(chatId: string, messageIds: string[]) {
     try {
-      const batch = db.batch();
-      
-      messageIds.forEach((messageId) => {
-        const messageRef = doc(db, `chats/${chatId}/messages/${messageId}`);
-        batch.update(messageRef, { read: true });
-      });
+      const { error } = await supabase
+        .from('messages')
+        .update({ read: true })
+        .in('id', messageIds)
+        .eq('chat_id', chatId);
 
-      await batch.commit();
-      
-      await updateDoc(doc(db, 'chats', chatId), {
-        unreadCount: 0
-      });
+      if (error) throw error;
     } catch (error) {
       console.error('Error marking messages as read:', error);
       throw error;
@@ -152,35 +124,27 @@ export const messagingService = {
 
   // Mesajları dinle
   subscribeToMessages(chatId: string, callback: (messages: Message[]) => void) {
-    const q = query(
-      collection(db, `chats/${chatId}/messages`),
-      orderBy('timestamp', 'desc'),
-      limit(50)
-    );
-
-    return onSnapshot(q, (snapshot) => {
-      const messages: Message[] = [];
-      snapshot.forEach((doc) => {
-        messages.push({ id: doc.id, ...doc.data() } as Message);
-      });
-      callback(messages.reverse());
-    });
+    return supabase
+      .channel(`messages:${chatId}`)
+      .on('postgres_changes', 
+        { event: '*', schema: 'public', table: 'messages', filter: `chat_id=eq.${chatId}` },
+        (payload) => {
+          this.getMessages(chatId).then(callback);
+        }
+      )
+      .subscribe();
   },
 
   // Sohbetleri dinle
   subscribeToChats(userId: string, callback: (chats: Chat[]) => void) {
-    const q = query(
-      collection(db, 'chats'),
-      where('participants', 'array-contains', userId),
-      orderBy('updatedAt', 'desc')
-    );
-
-    return onSnapshot(q, (snapshot) => {
-      const chats: Chat[] = [];
-      snapshot.forEach((doc) => {
-        chats.push({ id: doc.id, ...doc.data() } as Chat);
-      });
-      callback(chats);
-    });
+    return supabase
+      .channel(`chats:${userId}`)
+      .on('postgres_changes',
+        { event: '*', schema: 'public', table: 'chats' },
+        (payload) => {
+          this.getChats(userId).then(callback);
+        }
+      )
+      .subscribe();
   }
 };

@@ -1,9 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
-import { auth, storage, db } from '../../config/firebase';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { doc, setDoc } from 'firebase/firestore';
+import { supabase } from '../../config/supabase';
 import { UserPlus, Mail, Lock, User, AlertCircle, Upload } from 'lucide-react';
 
 export default function Register() {
@@ -44,175 +41,198 @@ export default function Register() {
       setLoading(true);
 
       // Kullanıcı oluştur
-      const userCredential = await createUserWithEmailAndPassword(
-        auth,
-        formData.email,
-        formData.password
-      );
+      const { data: authData, error: signUpError } = await supabase.auth.signUp({
+        email: formData.email,
+        password: formData.password,
+        options: {
+          data: {
+            username: formData.username
+          }
+        }
+      });
 
-      let photoURL = '';
+      if (signUpError) throw signUpError;
 
       // Avatar yükle
-      if (avatar) {
-        const fileRef = ref(storage, `avatars/${userCredential.user.uid}`);
-        await uploadBytes(fileRef, avatar);
-        photoURL = await getDownloadURL(fileRef);
+      if (avatar && authData.user) {
+        const fileExt = avatar.name.split('.').pop();
+        const fileName = `${authData.user.id}.${fileExt}`;
+        const { error: uploadError } = await supabase.storage
+          .from('avatars')
+          .upload(fileName, avatar);
+
+        if (uploadError) throw uploadError;
+
+        // Profil güncelle
+        const { error: updateError } = await supabase
+          .from('profiles')
+          .upsert({
+            id: authData.user.id,
+            username: formData.username,
+            avatar_url: `${fileName}`
+          });
+
+        if (updateError) throw updateError;
       }
 
-      // Profil güncelle
-      await updateProfile(userCredential.user, {
-        displayName: formData.username,
-        photoURL
-      });
-
-      // Firestore'a kullanıcı verilerini kaydet
-      await setDoc(doc(db, 'users', userCredential.user.uid), {
-        username: formData.username,
-        email: formData.email,
-        photoURL,
-        createdAt: new Date().toISOString(),
-        bio: '',
-        location: '',
-        website: '',
-        twitter: '',
-        instagram: '',
-      });
-
-      navigate('/');
-    } catch (err) {
-      setError('Hesap oluşturulamadı. Lütfen tekrar deneyin.');
+      navigate('/login');
+    } catch (err: any) {
+      setError(err.message);
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-gray-900 text-white py-16 px-4">
-      <div className="max-w-md mx-auto">
-        <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold mb-2">Hesap Oluştur</h1>
-          <p className="text-gray-400">
-            AI Art Market'e katılın ve sanat dünyasını keşfedin
-          </p>
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-md w-full space-y-8">
+        <div>
+          <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
+            Hesap Oluştur
+          </h2>
         </div>
-
-        {error && (
-          <div className="bg-red-500/10 border border-red-500 rounded-lg p-4 mb-6 flex items-center gap-2 text-red-500">
-            <AlertCircle size={20} />
-            <p>{error}</p>
-          </div>
-        )}
-
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <div>
-            <label className="block text-sm font-medium mb-2">Kullanıcı Adı</label>
-            <div className="relative">
-              <input
-                type="text"
-                name="username"
-                value={formData.username}
-                onChange={handleChange}
-                className="w-full bg-gray-800 text-white px-4 py-3 pl-12 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
-                placeholder="kullaniciadi"
-                required
-              />
-              <User className="absolute left-4 top-3.5 text-gray-400" size={20} />
+        <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
+          {error && (
+            <div className="flex items-center p-4 text-sm text-red-800 rounded-lg bg-red-50">
+              <AlertCircle className="flex-shrink-0 inline w-4 h-4 mr-3" />
+              <span>{error}</span>
+            </div>
+          )}
+          
+          <div className="rounded-md shadow-sm -space-y-px">
+            <div>
+              <label htmlFor="username" className="sr-only">Kullanıcı Adı</label>
+              <div className="flex">
+                <span className="inline-flex items-center px-3 rounded-l-md border border-r-0 border-gray-300 bg-gray-50 text-gray-500">
+                  <User className="h-5 w-5" />
+                </span>
+                <input
+                  id="username"
+                  name="username"
+                  type="text"
+                  required
+                  className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-r-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
+                  placeholder="Kullanıcı Adı"
+                  value={formData.username}
+                  onChange={handleChange}
+                />
+              </div>
+            </div>
+            
+            <div>
+              <label htmlFor="email" className="sr-only">Email</label>
+              <div className="flex mt-3">
+                <span className="inline-flex items-center px-3 rounded-l-md border border-r-0 border-gray-300 bg-gray-50 text-gray-500">
+                  <Mail className="h-5 w-5" />
+                </span>
+                <input
+                  id="email"
+                  name="email"
+                  type="email"
+                  autoComplete="email"
+                  required
+                  className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-r-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
+                  placeholder="Email adresi"
+                  value={formData.email}
+                  onChange={handleChange}
+                />
+              </div>
+            </div>
+            
+            <div>
+              <label htmlFor="password" className="sr-only">Şifre</label>
+              <div className="flex mt-3">
+                <span className="inline-flex items-center px-3 rounded-l-md border border-r-0 border-gray-300 bg-gray-50 text-gray-500">
+                  <Lock className="h-5 w-5" />
+                </span>
+                <input
+                  id="password"
+                  name="password"
+                  type="password"
+                  autoComplete="new-password"
+                  required
+                  className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-r-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
+                  placeholder="Şifre"
+                  value={formData.password}
+                  onChange={handleChange}
+                />
+              </div>
+            </div>
+            
+            <div>
+              <label htmlFor="confirmPassword" className="sr-only">Şifre Tekrar</label>
+              <div className="flex mt-3">
+                <span className="inline-flex items-center px-3 rounded-l-md border border-r-0 border-gray-300 bg-gray-50 text-gray-500">
+                  <Lock className="h-5 w-5" />
+                </span>
+                <input
+                  id="confirmPassword"
+                  name="confirmPassword"
+                  type="password"
+                  autoComplete="new-password"
+                  required
+                  className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-r-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
+                  placeholder="Şifre Tekrar"
+                  value={formData.confirmPassword}
+                  onChange={handleChange}
+                />
+              </div>
             </div>
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-2">E-posta</label>
-            <div className="relative">
-              <input
-                type="email"
-                name="email"
-                value={formData.email}
-                onChange={handleChange}
-                className="w-full bg-gray-800 text-white px-4 py-3 pl-12 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
-                placeholder="ornek@email.com"
-                required
-              />
-              <Mail className="absolute left-4 top-3.5 text-gray-400" size={20} />
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium mb-2">Şifre</label>
-            <div className="relative">
-              <input
-                type="password"
-                name="password"
-                value={formData.password}
-                onChange={handleChange}
-                className="w-full bg-gray-800 text-white px-4 py-3 pl-12 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
-                placeholder="********"
-                required
-              />
-              <Lock className="absolute left-4 top-3.5 text-gray-400" size={20} />
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium mb-2">Şifre Tekrar</label>
-            <div className="relative">
-              <input
-                type="password"
-                name="confirmPassword"
-                value={formData.confirmPassword}
-                onChange={handleChange}
-                className="w-full bg-gray-800 text-white px-4 py-3 pl-12 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
-                placeholder="********"
-                required
-              />
-              <Lock className="absolute left-4 top-3.5 text-gray-400" size={20} />
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium mb-2">Profil Fotoğrafı</label>
-            <div className="relative">
-              <input
-                type="file"
-                accept="image/*"
-                onChange={handleAvatarChange}
-                className="hidden"
-                id="avatar-upload"
-              />
+            <label htmlFor="avatar" className="block text-sm font-medium text-gray-700">
+              Profil Fotoğrafı
+            </label>
+            <div className="mt-1 flex items-center">
+              <span className="inline-block h-12 w-12 rounded-full overflow-hidden bg-gray-100">
+                {avatar ? (
+                  <img
+                    src={URL.createObjectURL(avatar)}
+                    alt="Avatar preview"
+                    className="h-full w-full object-cover"
+                  />
+                ) : (
+                  <User className="h-full w-full text-gray-300" />
+                )}
+              </span>
               <label
                 htmlFor="avatar-upload"
-                className="w-full bg-gray-800 text-white px-4 py-3 rounded-lg cursor-pointer hover:bg-gray-700 transition-colors flex items-center gap-2"
+                className="ml-5 bg-white py-2 px-3 border border-gray-300 rounded-md shadow-sm text-sm leading-4 font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 cursor-pointer"
               >
-                <Upload size={20} />
-                {avatar ? avatar.name : 'Fotoğraf seç'}
+                <Upload className="h-4 w-4 inline-block mr-2" />
+                Yükle
               </label>
+              <input
+                id="avatar-upload"
+                name="avatar"
+                type="file"
+                className="sr-only"
+                accept="image/*"
+                onChange={handleAvatarChange}
+              />
             </div>
           </div>
 
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full bg-gradient-to-r from-purple-600 to-pink-600 text-white py-3 rounded-lg font-semibold hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-          >
-            {loading ? (
-              <>
-                <div className="animate-spin rounded-full h-5 w-5 border-2 border-white border-t-transparent" />
-                Hesap oluşturuluyor...
-              </>
-            ) : (
-              <>
-                <UserPlus size={20} />
-                Kayıt Ol
-              </>
-            )}
-          </button>
+          <div>
+            <button
+              type="submit"
+              disabled={loading}
+              className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+            >
+              <span className="absolute left-0 inset-y-0 flex items-center pl-3">
+                <UserPlus className="h-5 w-5 text-indigo-500 group-hover:text-indigo-400" />
+              </span>
+              {loading ? 'Kaydediliyor...' : 'Kayıt Ol'}
+            </button>
+          </div>
         </form>
 
-        <p className="mt-8 text-center text-gray-400">
-          Zaten hesabınız var mı?{' '}
-          <Link to="/login" className="text-purple-500 hover:text-purple-400 font-medium">
-            Giriş yapın
+        <div className="text-sm text-center">
+          <Link to="/login" className="font-medium text-indigo-600 hover:text-indigo-500">
+            Zaten hesabın var mı? Giriş yap
           </Link>
-        </p>
+        </div>
       </div>
     </div>
   );
