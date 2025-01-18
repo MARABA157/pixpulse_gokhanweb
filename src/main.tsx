@@ -1,7 +1,6 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { Provider } from 'react-redux';
-import { BrowserRouter } from 'react-router-dom';
 import App from './App';
 import store from './store';
 import reportWebVitals from './utils/analytics';
@@ -16,11 +15,9 @@ if (import.meta.env.VITE_ENABLE_SENTRY === 'true') {
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <Provider store={store}>
-      <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
-        <App />
-      </BrowserRouter>
+      <App />
     </Provider>
-  </React.StrictMode>,
+  </React.StrictMode>
 );
 
 // Performance metrikleri
