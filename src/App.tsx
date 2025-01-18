@@ -4,10 +4,8 @@ import { Toaster } from 'react-hot-toast';
 import { AuthProvider } from './contexts/AuthContext';
 import Loading from './components/Loading';
 import ErrorBoundary from './components/common/ErrorBoundary';
-import RotatingBackground from './components/RotatingBackground';
 import Navbar from './components/Navbar';
 import PrivateRoute from './components/PrivateRoute';
-import BackgroundSlider from './components/BackgroundSlider'; // Added import statement
 
 // Lazy imports
 const Home = React.lazy(() => import('./pages/Home'));
@@ -24,43 +22,31 @@ const CreateVideo = React.lazy(() => import('./pages/CreateVideo'));
 const App: React.FC = () => {
   return (
     <ErrorBoundary>
-      <AuthProvider>
-        <div className="min-h-screen bg-gray-100 relative">
-          <BackgroundSlider /> 
-          <div className="relative z-10">
+      <Router>
+        <AuthProvider>
+          <div className="min-h-screen bg-gray-100">
             <Navbar />
             <main className="container mx-auto px-4 py-8">
-              <Router>
-                <Suspense fallback={<Loading />}>
-                  <Routes>
-                    <Route path="/" element={<Home />} />
-                    <Route path="/login" element={<Login />} />
-                    <Route path="/register" element={<Register />} />
-                    <Route path="/explore" element={<Explore />} />
-                    <Route path="/profile" element={<PrivateRoute><Profile /></PrivateRoute>} />
-                    <Route path="/settings" element={<PrivateRoute><Settings /></PrivateRoute>} />
-                    <Route path="/create" element={<PrivateRoute><Create /></PrivateRoute>} />
-                    <Route path="/messages" element={<PrivateRoute><Messages /></PrivateRoute>} />
-                    <Route path="/aichat" element={<AiChat />} />
-                    <Route path="/create-video" element={<CreateVideo />} />
-                    <Route path="*" element={<Navigate to="/" />} />
-                  </Routes>
-                </Suspense>
-              </Router>
+              <Suspense fallback={<Loading />}>
+                <Routes>
+                  <Route path="/" element={<Home />} />
+                  <Route path="/login" element={<Login />} />
+                  <Route path="/register" element={<Register />} />
+                  <Route path="/explore" element={<Explore />} />
+                  <Route path="/profile" element={<PrivateRoute><Profile /></PrivateRoute>} />
+                  <Route path="/settings" element={<PrivateRoute><Settings /></PrivateRoute>} />
+                  <Route path="/create" element={<PrivateRoute><Create /></PrivateRoute>} />
+                  <Route path="/messages" element={<PrivateRoute><Messages /></PrivateRoute>} />
+                  <Route path="/aichat" element={<AiChat />} />
+                  <Route path="/create-video" element={<CreateVideo />} />
+                  <Route path="*" element={<Navigate to="/" />} />
+                </Routes>
+              </Suspense>
             </main>
+            <Toaster position="top-right" />
           </div>
-          <Toaster 
-            position="top-right"
-            toastOptions={{
-              duration: 3000,
-              style: {
-                background: '#333',
-                color: '#fff',
-              },
-            }}
-          />
-        </div>
-      </AuthProvider>
+        </AuthProvider>
+      </Router>
     </ErrorBoundary>
   );
 };
