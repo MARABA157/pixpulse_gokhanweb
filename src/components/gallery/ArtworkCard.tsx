@@ -5,20 +5,34 @@ import { useAuthContext } from '../../contexts/AuthContext';
 import { useLikes } from '../../hooks/useLikes';
 
 interface ArtworkCardProps {
-  artwork: Artwork;
+  artwork: {
+    id: string;
+    title: string;
+    imageUrl: string;
+    artist: string;
+    likes?: number;
+    createdAt: string;
+  };
+  onLike?: (id: string) => void;
+  onClick?: (id: string) => void;
 }
 
-export default function ArtworkCard({ artwork }: ArtworkCardProps) {
+export default function ArtworkCard({ artwork, onLike, onClick }: ArtworkCardProps) {
   const { user } = useAuthContext();
   const { isLiked, toggleLike } = useLikes(artwork.id);
 
   const handleLikeClick = () => {
     if (!user) return;
     toggleLike();
+    if (onLike) onLike(artwork.id);
+  };
+
+  const handleClick = () => {
+    if (onClick) onClick(artwork.id);
   };
 
   return (
-    <div className="bg-white rounded-lg shadow-lg overflow-hidden transform hover:scale-[1.02] transition-transform duration-200">
+    <div className="bg-white rounded-lg shadow-lg overflow-hidden transform hover:scale-[1.02] transition-transform duration-200" onClick={handleClick}>
       <div className="relative group">
         <img 
           src={artwork.imageUrl} 
