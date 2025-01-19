@@ -1,152 +1,123 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
-import { User } from '@supabase/supabase-js';
+import { createContext, useContext, useState, useEffect } from 'react';
+import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '../config/supabase';
 import { toast } from 'react-hot-toast';
 
-interface AuthContextType {
+export interface AuthContextType {
   user: User | null;
   loading: boolean;
+  currentUser: User | null;
+  signOut: () => Promise<void>;
   login: (email: string, password: string) => Promise<void>;
-  signup: (email: string, password: string, username: string) => Promise<void>;
-  logout: () => Promise<void>;
+  register: (email: string, password: string) => Promise<void>;
+  resetPassword: (email: string) => Promise<void>;
+  updateProfile: (data: Partial<User>) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
-
-export function useAuth() {
-  const context = useContext(AuthContext);
-  if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
-  }
-  return context;
-}
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Mevcut oturumu kontrol et
+    // Check active sessions and sets the user
     supabase.auth.getSession().then(({ data: { session } }) => {
       setUser(session?.user ?? null);
       setLoading(false);
     });
 
-    // Oturum değişikliklerini dinle
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
+    // Listen for changes on auth state (logged in, signed out, etc.)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user ?? null);
       setLoading(false);
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      subscription.unsubscribe();
+    };
   }, []);
 
   const login = async (email: string, password: string) => {
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
-
+      const { error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) throw error;
-
-      if (data?.user) {
-        if (!data.user.email_confirmed_at) {
-          throw new Error('Email adresinizi onaylamanız gerekiyor');
-        }
-        toast.success('Başarıyla giriş yaptınız!');
-      }
-    } catch (error: any) {
-      console.error('Login error:', error);
-      if (error.message.includes('Invalid login credentials')) {
-        toast.error('Geçersiz email veya şifre');
-      } else {
-        toast.error(error.message || 'Giriş yaparken bir hata oluştu');
-      }
+      toast.success('Successfully logged in!');
+    } catch (error) {
+      console.error('Error logging in:', error);
+      toast.error('Invalid email or password');
       throw error;
     }
   };
 
-  const signup = async (email: string, password: string, username: string) => {
+  const register = async (email: string, password: string) => {
     try {
-      // Önce kullanıcı adının kullanılabilir olduğunu kontrol et
-      const { data: existingUser, error: checkError } = await supabase
-        .from('profiles')
-        .select('username')
-        .eq('username', username)
-        .single();
-
-      if (checkError && checkError.code !== 'PGRST116') {
-        throw checkError;
-      }
-
-      if (existingUser) {
-        throw new Error('Bu kullanıcı adı zaten kullanılıyor');
-      }
-
-      const { data, error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          data: {
-            username,
-          },
-        },
-      });
-
+      const { error } = await supabase.auth.signUp({ email, password });
       if (error) throw error;
-
-      if (data?.user) {
-        const { error: profileError } = await supabase
-          .from('profiles')
-          .insert([
-            {
-              id: data.user.id,
-              username,
-              created_at: new Date().toISOString(),
-            },
-          ]);
-
-        if (profileError) throw profileError;
-
-        toast.success('Hesabınız oluşturuldu! Email adresinizi onaylayın.');
-      }
-    } catch (error: any) {
-      console.error('Signup error:', error);
-      if (error.message.includes('already registered')) {
-        toast.error('Bu email adresi zaten kayıtlı');
-      } else {
-        toast.error(error.message || 'Kayıt olurken bir hata oluştu');
-      }
+      toast.success('Registration successful! Please check your email to verify your account.');
+    } catch (error) {
+      console.error('Error registering:', error);
+      toast.error('Registration failed. Please try again.');
       throw error;
     }
   };
 
-  const logout = async () => {
+  const signOut = async () => {
     try {
       const { error } = await supabase.auth.signOut();
       if (error) throw error;
-      toast.success('Başarıyla çıkış yaptınız');
-    } catch (error: any) {
-      console.error('Logout error:', error);
-      toast.error(error.message || 'Çıkış yaparken bir hata oluştu');
+      setUser(null);
+      toast.success('Successfully signed out');
+    } catch (error) {
+      console.error('Error signing out:', error);
+      toast.error('Error signing out');
+      throw error;
+    }
+  };
+
+  const resetPassword = async (email: string) => {
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email);
+      if (error) throw error;
+      toast.success('Password reset email sent. Please check your inbox.');
+    } catch (error) {
+      console.error('Error resetting password:', error);
+      toast.error('Error sending password reset email');
+      throw error;
+    }
+  };
+
+  const updateProfile = async (data: Partial<User>) => {
+    try {
+      const { error } = await supabase.auth.updateUser(data);
+      if (error) throw error;
+      setUser((prev) => prev ? { ...prev, ...data } : null);
+      toast.success('Profile updated successfully');
+    } catch (error) {
+      console.error('Error updating profile:', error);
+      toast.error('Error updating profile');
       throw error;
     }
   };
 
   const value = {
     user,
+    currentUser: user,
     loading,
+    signOut,
     login,
-    signup,
-    logout,
+    register,
+    resetPassword,
+    updateProfile,
   };
 
-  return (
-    <AuthContext.Provider value={value}>
-      {!loading && children}
-    </AuthContext.Provider>
-  );
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
+
+export const useAuth = () => {
+  const context = useContext(AuthContext);
+  if (context === undefined) {
+    throw new Error('useAuth must be used within an AuthProvider');
+  }
+  return context;
+};

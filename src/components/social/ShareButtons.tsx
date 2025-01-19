@@ -1,64 +1,56 @@
 import React from 'react';
-import { Twitter, Facebook, Linkedin, Share2, MessageCircle } from 'lucide-react';
-import { motion } from 'framer-motion';
-import { socialMediaService } from '../../services/socialMedia';
+import { Facebook, Twitter, Link } from 'lucide-react';
 
 interface ShareButtonsProps {
-  title: string;
-  text?: string;
   url: string;
+  title: string;
+  className?: string;
 }
 
-const ShareButtons: React.FC<ShareButtonsProps> = ({ title, text, url }) => {
-  const shareOptions = { title, text, url };
-
-  const buttons = [
-    {
-      name: 'Twitter',
-      icon: Twitter,
-      onClick: () => socialMediaService.shareToTwitter(shareOptions),
-      color: 'bg-[#1DA1F2] hover:bg-[#1a8cd8]'
-    },
-    {
-      name: 'Facebook',
-      icon: Facebook,
-      onClick: () => socialMediaService.shareToFacebook(shareOptions),
-      color: 'bg-[#4267B2] hover:bg-[#365899]'
-    },
-    {
-      name: 'LinkedIn',
-      icon: Linkedin,
-      onClick: () => socialMediaService.shareToLinkedIn(shareOptions),
-      color: 'bg-[#0077B5] hover:bg-[#006399]'
-    },
-    {
-      name: 'WhatsApp',
-      icon: MessageCircle,
-      onClick: () => socialMediaService.shareToWhatsApp(shareOptions),
-      color: 'bg-[#25D366] hover:bg-[#22bf5b]'
-    },
-    {
-      name: 'Share',
-      icon: Share2,
-      onClick: () => socialMediaService.shareNative(shareOptions),
-      color: 'bg-gray-600 hover:bg-gray-700'
+const ShareButtons: React.FC<ShareButtonsProps> = ({ url, title, className }) => {
+  const handleShare = (platform: string) => {
+    let shareUrl = '';
+    
+    switch (platform) {
+      case 'facebook':
+        shareUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`;
+        break;
+      case 'twitter':
+        shareUrl = `https://twitter.com/intent/tweet?url=${encodeURIComponent(url)}&text=${encodeURIComponent(title)}`;
+        break;
+      case 'copy':
+        navigator.clipboard.writeText(url);
+        return;
     }
-  ];
+    
+    if (shareUrl) {
+      window.open(shareUrl, '_blank');
+    }
+  };
 
   return (
-    <div className="flex space-x-2">
-      {buttons.map((button) => (
-        <motion.button
-          key={button.name}
-          whileHover={{ scale: 1.1 }}
-          whileTap={{ scale: 0.9 }}
-          onClick={button.onClick}
-          className={`p-2 rounded-full text-white ${button.color} transition-colors duration-200`}
-          aria-label={`Share on ${button.name}`}
-        >
-          <button.icon className="w-5 h-5" />
-        </motion.button>
-      ))}
+    <div className={`flex gap-2 ${className || ''}`}>
+      <button
+        onClick={() => handleShare('facebook')}
+        className="p-2 rounded-full hover:bg-gray-100"
+        aria-label="Share on Facebook"
+      >
+        <Facebook size={20} />
+      </button>
+      <button
+        onClick={() => handleShare('twitter')}
+        className="p-2 rounded-full hover:bg-gray-100"
+        aria-label="Share on Twitter"
+      >
+        <Twitter size={20} />
+      </button>
+      <button
+        onClick={() => handleShare('copy')}
+        className="p-2 rounded-full hover:bg-gray-100"
+        aria-label="Copy link"
+      >
+        <Link size={20} />
+      </button>
     </div>
   );
 };

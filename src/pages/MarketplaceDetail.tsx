@@ -141,7 +141,7 @@ export default function MarketplaceDetail() {
                   <div className="flex items-center gap-2">
                     <span className="font-mono text-sm">{artwork.contractAddress?.slice(0, 6)}...{artwork.contractAddress?.slice(-4)}</span>
                     <a
-                      href={\`https://etherscan.io/address/\${artwork.contractAddress}\`}
+                      href={`https://etherscan.io/address/${artwork.contractAddress}`}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="text-purple-500 hover:text-purple-400"

@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Filter, SlidersHorizontal, X } from 'lucide-react';
 
-export interface FilterOption {
+interface FilterOption {
   id: string;
   label: string;
   type: 'select' | 'range' | 'checkbox' | 'radio';
@@ -18,14 +18,16 @@ interface FilterState {
 
 interface AdvancedFiltersProps {
   filters: FilterOption[];
-  onChange: (filters: FilterState) => void;
+  onFilterChange: (filters: FilterState) => void;
   initialState?: FilterState;
+  className?: string;
 }
 
 const AdvancedFilters: React.FC<AdvancedFiltersProps> = ({
   filters,
-  onChange,
+  onFilterChange,
   initialState = {},
+  className,
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [filterState, setFilterState] = useState<FilterState>(initialState);
@@ -33,12 +35,12 @@ const AdvancedFilters: React.FC<AdvancedFiltersProps> = ({
   const handleFilterChange = (id: string, value: string | number | boolean | string[]) => {
     const newState = { ...filterState, [id]: value };
     setFilterState(newState);
-    onChange(newState);
+    onFilterChange(newState);
   };
 
   const clearFilters = () => {
     setFilterState({});
-    onChange({});
+    onFilterChange({});
   };
 
   const renderFilterInput = (filter: FilterOption) => {
@@ -125,7 +127,7 @@ const AdvancedFilters: React.FC<AdvancedFiltersProps> = ({
   };
 
   return (
-    <div className="relative">
+    <div className={className}>
       <motion.button
         whileHover={{ scale: 1.05 }}
         whileTap={{ scale: 0.95 }}

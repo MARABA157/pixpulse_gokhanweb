@@ -189,22 +189,22 @@ export default function ArtistProfile() {
           <div className="flex gap-8 border-b border-gray-800">
             <button
               onClick={() => setActiveTab('works')}
-              className={\`pb-4 px-2 \${
+              className={`pb-4 px-2 ${
                 activeTab === 'works'
                   ? 'text-white border-b-2 border-purple-500'
                   : 'text-gray-400 hover:text-white'
-              } transition-colors flex items-center gap-2\`}
+              } transition-colors flex items-center gap-2`}
             >
               <Grid size={20} />
               Eserler
             </button>
             <button
               onClick={() => setActiveTab('collections')}
-              className={\`pb-4 px-2 \${
+              className={`pb-4 px-2 ${
                 activeTab === 'collections'
                   ? 'text-white border-b-2 border-purple-500'
                   : 'text-gray-400 hover:text-white'
-              } transition-colors flex items-center gap-2\`}
+              } transition-colors flex items-center gap-2`}
             >
               <BookMarked size={20} />
               Koleksiyonlar

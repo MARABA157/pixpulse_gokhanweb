@@ -156,9 +156,7 @@ export default function NotificationsDropdown() {
               notifications.map((notification) => (
                 <div
                   key={notification.id}
-                  className={\`p-4 hover:bg-gray-750 transition-colors \${
-                    !notification.read ? 'bg-gray-750/50' : ''
-                  }\`}
+                  className={`p-4 hover:bg-gray-750 transition-colors ${!notification.read ? 'bg-gray-750/50' : ''}`}
                 >
                   <div className="flex items-start gap-3">
                     <div className="mt-1">

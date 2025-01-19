@@ -68,3 +68,30 @@ setInterval(() => {
   apiRateLimiter.cleanup();
   authRateLimiter.cleanup();
 }, 60 * 60 * 1000);
+
+interface RateLimitOptions {
+  maxRequests: number;
+  timeWindow: number;
+}
+
+export const rateLimit = ({ maxRequests, timeWindow }: RateLimitOptions) => {
+  const requests: number[] = [];
+
+  return async (fn: () => Promise<any>) => {
+    const now = Date.now();
+    requests.push(now);
+
+    // Remove expired timestamps
+    const validRequests = requests.filter(
+      timestamp => now - timestamp < timeWindow
+    );
+
+    if (validRequests.length > maxRequests) {
+      const oldestRequest = validRequests[0];
+      const timeToWait = timeWindow - (now - oldestRequest);
+      await new Promise(resolve => setTimeout(resolve, timeToWait));
+    }
+
+    return fn();
+  };
+};
