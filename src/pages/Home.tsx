@@ -15,79 +15,71 @@ import ImageGenerationPrompt from '../components/prompts/ImageGenerationPrompt';
 import VideoGenerationPrompt from '../components/prompts/VideoGenerationPrompt';
 import PlaceholderImage from '../components/PlaceholderImage';
 
-interface CityTheme {
-  id: number;
-  name: string;
-  image: string;
-  description: string;
-}
-
-const cityThemes: CityTheme[] = [
+const cities = [
   {
     id: 1,
     name: 'İstanbul',
-    image: 'istanbul',
     description: 'Tarihi yarımada ve boğazın büyüleyici manzarası',
+    image: 'https://images.unsplash.com/photo-1524231757912-21f4fe3a7200?auto=format&fit=crop&w=1920&q=80',
   },
   {
     id: 2,
     name: 'Tokyo',
-    image: 'tokyo',
     description: 'Modern teknoloji ve geleneksel kültürün buluşması',
+    image: 'https://images.unsplash.com/photo-1540959733332-eab4deabeeaf?auto=format&fit=crop&w=1920&q=80',
   },
   {
     id: 3,
     name: 'Paris',
-    image: 'paris',
     description: 'Romantik sokaklar ve sanatın başkenti',
+    image: 'https://images.unsplash.com/photo-1502602898657-3e91760cbb34?auto=format&fit=crop&w=1920&q=80',
   },
   {
     id: 4,
     name: 'New York',
-    image: 'newyork',
     description: 'Gökdelenlerin ve kültürel çeşitliliğin merkezi',
+    image: 'https://images.unsplash.com/photo-1496442226666-8d4d0e62e6e9?auto=format&fit=crop&w=1920&q=80',
   },
 ];
 
 const Home: React.FC = () => {
-  const [currentTheme, setCurrentTheme] = useState(0);
+  const [currentCity, setCurrentCity] = useState(0);
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [isImagePromptOpen, setIsImagePromptOpen] = useState(false);
   const [isVideoPromptOpen, setIsVideoPromptOpen] = useState(false);
 
   useEffect(() => {
     const interval = setInterval(() => {
-      setCurrentTheme((prev) => (prev + 1) % cityThemes.length);
+      setCurrentCity((prev) => (prev + 1) % cities.length);
     }, 5000);
 
     return () => clearInterval(interval);
   }, []);
 
-  const nextTheme = () => {
-    setCurrentTheme((prev) => (prev + 1) % cityThemes.length);
+  const nextCity = () => {
+    setCurrentCity((prev) => (prev + 1) % cities.length);
   };
 
-  const prevTheme = () => {
-    setCurrentTheme((prev) => (prev - 1 + cityThemes.length) % cityThemes.length);
+  const prevCity = () => {
+    setCurrentCity((prev) => (prev - 1 + cities.length) % cities.length);
   };
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-900 to-gray-800">
-      {/* Hero Section with City Themes */}
+      {/* Hero Section */}
       <div className="relative h-screen">
         <AnimatePresence mode="wait">
           <motion.div
-            key={currentTheme}
+            key={currentCity}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 1 }}
             className="absolute inset-0"
           >
-            <PlaceholderImage
-              text={`${cityThemes[currentTheme].name} City`}
-              width={1600}
-              height={900}
+            <img
+              src={cities[currentCity].image}
+              alt={cities[currentCity].name}
               className="w-full h-full object-cover"
             />
             <div className="absolute inset-0 bg-black bg-opacity-50" />
@@ -98,7 +90,7 @@ const Home: React.FC = () => {
                   animate={{ y: 0, opacity: 1 }}
                   className="text-6xl font-bold mb-4"
                 >
-                  {cityThemes[currentTheme].name}
+                  {cities[currentCity].name}
                 </motion.h1>
                 <motion.p
                   initial={{ y: 20, opacity: 0 }}
@@ -106,24 +98,39 @@ const Home: React.FC = () => {
                   transition={{ delay: 0.2 }}
                   className="text-xl"
                 >
-                  {cityThemes[currentTheme].description}
+                  {cities[currentCity].description}
                 </motion.p>
               </div>
             </div>
           </motion.div>
         </AnimatePresence>
+
+        {/* Navigation Buttons */}
         <button
-          onClick={prevTheme}
-          className="absolute left-4 top-1/2 transform -translate-y-1/2 text-white p-2 rounded-full bg-black bg-opacity-50 hover:bg-opacity-75"
+          onClick={prevCity}
+          className="absolute left-4 top-1/2 transform -translate-y-1/2 text-white p-2 rounded-full bg-black bg-opacity-50 hover:bg-opacity-75 transition-all"
         >
           <ChevronLeft size={24} />
         </button>
         <button
-          onClick={nextTheme}
-          className="absolute right-4 top-1/2 transform -translate-y-1/2 text-white p-2 rounded-full bg-black bg-opacity-50 hover:bg-opacity-75"
+          onClick={nextCity}
+          className="absolute right-4 top-1/2 transform -translate-y-1/2 text-white p-2 rounded-full bg-black bg-opacity-50 hover:bg-opacity-75 transition-all"
         >
           <ChevronRight size={24} />
         </button>
+
+        {/* City Indicators */}
+        <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2 flex space-x-2">
+          {cities.map((_, index) => (
+            <button
+              key={index}
+              onClick={() => setCurrentCity(index)}
+              className={`w-3 h-3 rounded-full transition-all ${
+                index === currentCity ? 'bg-white' : 'bg-white bg-opacity-50'
+              }`}
+            />
+          ))}
+        </div>
       </div>
 
       {/* AI Features Section */}
