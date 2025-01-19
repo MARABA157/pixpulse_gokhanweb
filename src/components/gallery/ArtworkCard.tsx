@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { supabase } from '../../config/supabase';
 import { toast } from 'react-hot-toast';
-import { Heart, Save, Share2 } from 'lucide-react';
+import { Heart, Save, Share2, Star } from 'lucide-react';
 
 interface ArtworkCardProps {
   id: string;
@@ -129,21 +129,20 @@ export default function ArtworkCard({
             {creator.username}
           </Link>
           
-          <div className="flex items-center space-x-4">
+          <div className="flex items-center gap-2">
             <button
               onClick={handleLike}
               disabled={loading}
-              className="text-white hover:text-pink-500 transition-colors"
+              className={`flex items-center gap-1 ${
+                isLiked ? 'text-red-500' : 'text-gray-500'
+              }`}
             >
-              <Heart
-                className={`h-6 w-6 ${isLiked ? 'fill-current text-pink-500' : ''}`}
-              />
-              <span className="sr-only">Like</span>
-              {likeCount > 0 && (
-                <span className="ml-1 text-sm">{likeCount}</span>
-              )}
+              <Heart className={`w-5 h-5 ${isLiked ? 'fill-current' : ''}`} />
+              <span>{likeCount}</span>
             </button>
-
+            <button className="text-yellow-500">
+              <Star className="w-5 h-5 fill-current" />
+            </button>
             <button
               onClick={handleSave}
               disabled={loading}

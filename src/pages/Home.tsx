@@ -4,6 +4,7 @@ import ArtworkCard from '../components/gallery/ArtworkCard';
 import BackgroundSlider from '../components/BackgroundSlider';
 import { useAuth } from '../contexts/AuthContext';
 import toast from 'react-hot-toast';
+import { Heart } from 'lucide-react';
 
 interface Artwork {
   id: string;
@@ -76,6 +77,14 @@ export default function Home() {
       <BackgroundSlider />
       
       <div className="container mx-auto px-4 py-8">
+        <button className="w-full mb-8 py-4 bg-gradient-to-r from-purple-600 to-blue-500 text-white text-2xl font-bold rounded-lg shadow-lg hover:from-purple-700 hover:to-blue-600 transform hover:scale-105 transition-all duration-200 flex items-center justify-center gap-3">
+          <span className="text-3xl">🤖</span>
+          AiChat
+        </button>
+        <div className="flex items-center justify-center mb-8">
+          <h1 className="text-4xl font-bold text-center">PixPulse</h1>
+          <Heart className="w-6 h-6 ml-2 text-red-500 fill-current" />
+        </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
           {artworks.map((artwork) => (
             <ArtworkCard
